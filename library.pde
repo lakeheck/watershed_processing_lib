@@ -390,6 +390,8 @@ class AttractorSystem{
   float initial_TERMINATION_THRESHOLD = 0.7;
   float initial_TERMINATION_CHANCES = initial_DIVISION_CHANCES * 0.;
   boolean initial_DISCRETE_DIV_ANGLE = false;
+  float grid[];
+
 
   AttractorSystem(){
     particles = new ArrayList<Particle>();
@@ -1286,4 +1288,46 @@ float[] rgbToHsb(float red, float green, float blue, float alpha, float[] out) {
   out[2] = max;
   out[3] = alpha;
   return out;
+}
+
+//**********************************AD HOC ******************************************
+
+ArrayList<PVector> k_nearest_neighbors(PVector p, ArrayList<PVector> points, int k){ //originally used in kenny vaden sketch
+    ArrayList<PVector> knn = new ArrayList();
+    ArrayList<PVector> tempPoints = new ArrayList(points);
+
+    while(knn.size() < k){
+        float minDist = 999999;
+        PVector closest = new PVector();
+        for(PVector point:tempPoints){
+            if (p.equals(point)==false && PVector.dist(p, point) < minDist){
+                closest = point; 
+                minDist = PVector.dist(p, point);
+            }
+        }
+        knn.add(closest);
+        tempPoints.remove(closest);
+    }
+
+    return knn;
+}
+
+class Circle{ //originally used in kenny vaden sketch
+    PVector center;
+    float r;
+    color c;
+
+    Circle(PVector p, float _r){
+        center = p;
+        r=_r;
+        c = color(0,100,0);
+    }
+
+    boolean isIn(PVector p){
+        if(PVector.dist(p, center)<r){
+            return true;
+        }
+        else{return false;}
+    }
+
 }

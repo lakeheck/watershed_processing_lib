@@ -1,9 +1,102 @@
+import processing.core.*; 
+import processing.data.*; 
+import processing.event.*; 
+import processing.opengl.*; 
+
+import java.util.HashMap; 
+import java.util.ArrayList; 
+import java.io.File; 
+import java.io.BufferedReader; 
+import java.io.PrintWriter; 
+import java.io.InputStream; 
+import java.io.OutputStream; 
+import java.io.IOException; 
+
+public class watershed extends PApplet {
+
+
+/* *********************** HIGH RES EXPORT FUNCTIONALITY **************************/
+
+//INCLUDE THESE GLOBAL VARIABLES  
+PGraphics render;
+PImage img;
+String saveFilePath = "../outputs/watershed-" + new java.text.SimpleDateFormat("yyyyMMdd-HHmmss").format(new java.util.Date()); //change the XXXX to current project name 
+int printWidth = 6;
+int printHeight = 6;
+int printDpi = 300;
+int previewDpi = 72;
+boolean renderHighRes = false;
+boolean firstFrame = true;
+int renderWidth;
+int renderHeight;
+float scaleFactor = 1;
+int seed = 0;
+
+int[] line_palette, background_palette;
+
+//initialize 
+AttractorSystem as;
+
+public void setup(){
+    
+    background(255);
+    colorMode(HSB, 360, 100, 100, 100);
+    doReset();
+}
+
+
+public void doReset() { //initial setup and used in resetting for high-def export
+
+    int dpi = renderHighRes ? printDpi : previewDpi;
+    scaleFactor = dpi / (float)previewDpi;
+    renderWidth = printWidth * dpi;
+    renderHeight = printHeight * dpi;
+    render = createGraphics(renderWidth, renderHeight);
+    firstFrame = true;
+    noiseSeed(seed);
+    randomSeed(seed);
+    background_palette = new int[]{color(0xff0f0f0e), color(0xff382a04), color(0xff141524), color(0xff170d1f), color(0xff000000)};
+    line_palette = new int[]{color(0xff382a04), color(0xff594a1f), color(0xff073610), color(0xff18361e), color(0xff243618), color(0xff313622), color(0xff473216)};
+
+ 
+    as = new AttractorSystem();
+    as.addPerlinFlowField(0.1f, 4f, 0.5f, true);
+
+}
+
+
+
+public void draw(){
+    render.beginDraw();
+    if(firstFrame){
+        firstFrame = false;
+        render.colorMode(HSB, 360,100,100,100);
+    }
+    
+    //ANY LOGIC USED TO DRAW GOES HERE
+    as.calculateAttractorSystem();
+    render.endDraw(); //some settings to display the render object on screen
+    int outWidth, outHeight;
+    
+    float ratio = renderWidth / (float)renderHeight;
+    if (ratio > 1) {
+        outWidth = width;
+        outHeight = (int)(outWidth / ratio);
+    } else {
+        outHeight = height;
+        outWidth = (int)(outHeight * ratio);
+    }
+    
+    background(192);
+    image(render, (width-outWidth)/2, (height - outHeight) / 2, outWidth, outHeight);
+
+}
 
 
 
 /* ************************* GENERAL UTILITIES *************************************/
 
-PVector getTorusPosition (PVector position) {
+public PVector getTorusPosition (PVector position) {
   PVector pos = position.copy();
   if (pos.x < 0) pos.x = renderWidth + pos.x;
   if (pos.x > renderWidth) pos.x %= renderWidth;
@@ -13,7 +106,7 @@ PVector getTorusPosition (PVector position) {
 }
 
 /* ************************ INTERSECTION TESTS ******************************/
-boolean lineLine(float x1, float y1, float x2, float y2, float x3, float y3, float x4, float y4) {
+public boolean lineLine(float x1, float y1, float x2, float y2, float x3, float y3, float x4, float y4) {
 
   // calculate the direction of the lines
   float uA = ((x4-x3)*(y1-y3) - (y4-y3)*(x1-x3)) / ((y4-y3)*(x2-x1) - (x4-x3)*(y2-y1));
@@ -28,18 +121,18 @@ boolean lineLine(float x1, float y1, float x2, float y2, float x3, float y3, flo
 
 /************************** EASING FUNCTIONS ********************************/
 
-float sigmoidEasing(float x){
+public float sigmoidEasing(float x){
   return x==0 ? 0 : 1/(1+exp(-x));
 }
 
-float easing(float x){
+public float easing(float x){
   return sigmoidEasing(x);
 }
 
 
 /************************* POISSON DISK SAMPLING ****************************/
 
-boolean isValidPoint(PVector[][] grid, float cellsize,
+public boolean isValidPoint(PVector[][] grid, float cellsize,
                      int gwidth, int gheight,
                      PVector p, float radius) {
   /* Make sure the point is on the screen */
@@ -64,13 +157,13 @@ boolean isValidPoint(PVector[][] grid, float cellsize,
   return true;
 }
 
-void insertPoint(PVector[][] grid, float cellsize, PVector point) {
+public void insertPoint(PVector[][] grid, float cellsize, PVector point) {
   int xindex = floor(point.x / cellsize);
   int yindex = floor(point.y / cellsize);
   grid[xindex][yindex] = point;
 }
 
-ArrayList<PVector> poissonDiskSampling(float radius, int k) {
+public ArrayList<PVector> poissonDiskSampling(float radius, int k) {
   int N = 2;
   /* The final set of points to return */
   ArrayList<PVector> points = new ArrayList<PVector>();
@@ -96,7 +189,7 @@ ArrayList<PVector> poissonDiskSampling(float radius, int k) {
   active.add(p0);
 
   while (active.size() > 0) {
-    int random_index = int(random(active.size()));
+    int random_index = PApplet.parseInt(random(active.size()));
     PVector p = active.get(random_index);
     
     boolean found = false;
@@ -132,7 +225,7 @@ ArrayList<PVector> poissonDiskSampling(float radius, int k) {
 // int[] palette = new int[]{color(#ffe4cd), color(#703642), color(#703642), color(#abcdef), color(#4682b4)};
 // watercolorBackgroundTexture(new int[]{color(#ffe4cd), color(#703642), color(#703642), color(#abcdef), color(#4682b4)}, 5000, 5, 50, 0.1, 4); //red rocks scheme
 
-void watercolorBackgroundTexture(int[] baseColors, int numPoints, int numLayers, float geometryWidth, float colorVar, float jitter){
+public void watercolorBackgroundTexture(int[] baseColors, int numPoints, int numLayers, float geometryWidth, float colorVar, float jitter){
   //5000 points and 5 layers each is a good balance (with jitter of 4)
 
   Gradient grad = new Gradient(baseColors);
@@ -168,36 +261,36 @@ void watercolorBackgroundTexture(int[] baseColors, int numPoints, int numLayers,
 
     render.loadPixels();//then we jitter the resulting pixels to add some grainy vibes 
     for(int i=0; i<render.pixels.length; i++){
-        color c = render.pixels[i];
+        int c = render.pixels[i];
         render.pixels[i] = color(hue(c)+random(-jitter, jitter), saturation(c)+randomGaussian()*jitter, brightness(c) + randomGaussian()*jitter/2);
     }
     render.updatePixels();
 }
 
-void restricted_chaikin_overlay(){
+public void restricted_chaikin_overlay(){
     render.smooth();
     render.noFill();
 
     float x = random(render.width);
     float y = random(render.height);
-    float j = 2.5;
+    float j = 2.5f;
     PShape s = render.createShape();
     float border = 100;
     s.beginShape();
     for (int i = 0; i < 50000; i++) {
         s.vertex(x, y);
-        float qx = random(1) < 0.5 ? -1 : 1;
-        float qy = random(1) < 0.5 ? -1 : 1;
+        float qx = random(1) < 0.5f ? -1 : 1;
+        float qy = random(1) < 0.5f ? -1 : 1;
         x += qx * j;
         y += qy * j;
         x = constrain(x, -border, render.width + border);
         y = constrain(y, -border, render.height + border);
     }
     s.endShape();
-    render.shape(chaikin_open(s, 0.25, 3), 0, 0);
+    render.shape(chaikin_open(s, 0.25f, 3), 0, 0);
 }
 
-void gridline(float x1, float y1, float x2, float y2) {
+public void gridline(float x1, float y1, float x2, float y2) {
   float tmp;
   /* Swap coordinates if needed so that x1 <= x2 */
   if (x1 > x2) { tmp = x1; x1 = x2; x2 = tmp; tmp = y1; y1 = y2; y2 = tmp; }
@@ -213,14 +306,14 @@ void gridline(float x1, float y1, float x2, float y2) {
   float sy = y1;
   for (float x = x1+step; x <= x2; x+=step) {
     float y = y1 + step * dy * (x - x1) / dx;
-    render.strokeWeight(1 + map(noise(sx, sy), 0, 1, -0.5, 0.5));
+    render.strokeWeight(1 + map(noise(sx, sy), 0, 1, -0.5f, 0.5f));
     render.line(sx, sy, x + map(noise(x, y), 0, 1, -1, 1), y + map(noise(x, y), 0, 1, -1, 1));
     sx = x;
     sy = y;
   }
 }
 
-void canvas_overlay_example1() {
+public void canvas_overlay_example1() {
   float spacing = renderHighRes ? 5 * printDpi/previewDpi : 5;
   for (int i = -renderWidth; i < renderHeight + renderWidth; i+=spacing)
     gridline(i, 0, i + renderHeight, renderHeight);
@@ -237,7 +330,7 @@ class Attractor{
   PVector pos;
   float force;
   ArrayList<Float> pressure;
-  color c;
+  int c;
   float target_number;
   float dt;
   String attribute;
@@ -247,7 +340,7 @@ class Attractor{
   int pressure_lag = 50;
   int attractorForce = 1000;
   boolean normalize_attractor_force = true; //if normalize_attractor_force == true, kill_Particles should also = true
-  float damp = 0.0002; //applied to particle velocity every frame. set to 1 pill not dampen at all
+  float damp = 0.0002f; //applied to particle velocity every frame. set to 1 pill not dampen at all
 
 
   
@@ -258,7 +351,7 @@ class Attractor{
     pressure = new ArrayList<Float>();
     for(int i=0; i<pressure_lag; i++){pressure.add(initial_pressure);}
     force = attractorForce;
-    dt = 0.001;
+    dt = 0.001f;
     }
   
 
@@ -266,18 +359,18 @@ class Attractor{
       c = color(0,0,100);
   }
   
-  void calc_force_on(Particle p){
+  public void calc_force_on(Particle p){
     PVector f = PVector.sub(pos, p.pos);
     float d = f.mag();
     p.vel.add( new PVector(0,0));
     
   }
     
-  void update_force(){
-    force = (347.3058 + (6147.582 - 347.3058)/pow(1 + (pressure.get(0)/7004.265),8.499077)) + noise(5000,10000)*random(-1,1);
+  public void update_force(){
+    force = (347.3058f + (6147.582f - 347.3058f)/pow(1 + (pressure.get(0)/7004.265f),8.499077f)) + noise(5000,10000)*random(-1,1);
   }
 
-  void display(){age++;}
+  public void display(){age++;}
   
 }
 
@@ -287,14 +380,14 @@ class LorenzAttractor extends Attractor{
     super(_x, _y, _z);
   }
   
-  void calc_force_on(Particle p){
+  public void calc_force_on(Particle p){
     PVector f = PVector.sub(pos, p.pos);
     float d = f.mag();
     if(normalize_attractor_force){
       f.normalize();
       float dx = (10*(f.x + f.y))*dt;
       float dy = (-f.x*f.z + 28*f.x-f.y)*dt;
-      float dz = (f.x*f.y - 8.0/3*f.z)*dt;
+      float dz = (f.x*f.y - 8.0f/3*f.z)*dt;
       // p.vel.add( new PVector(dx, dy, dz).mult(force/(d+0.0001)));
       // float factor = map(d, 0, sqrt(width*height), 0, 1);
       // p.c = color(c);
@@ -305,7 +398,7 @@ class LorenzAttractor extends Attractor{
     else{
       float dx = (10*(f.x + f.y))*dt;
       float dy = (-f.x*f.z + 28*f.x-f.y)*dt;
-      float dz = (f.x*f.y - 8.0/3*f.z)*dt;
+      float dz = (f.x*f.y - 8.0f/3*f.z)*dt;
       // p.vel.add( new PVector(dx, dy, dz).normalize().mult(force/(d+0.0001)));
     }
   }
@@ -342,7 +435,7 @@ class PerlinFlowField extends Attractor{
             for(int y=0; y<renderHeight; y++){
                 float n = noise(xoff,yoff);
                 //playing around with clmaping the angles produces large effects  
-                float angleClamp = map(easing(map(x,0,renderWidth,0,1)),easing(0.),easing(1.),1, PI/2); // (PI/10); 
+                float angleClamp = map(easing(map(x,0,renderWidth,0,1)),easing(0.f),easing(1.f),1, PI/2); // (PI/10); 
                 // float angleClamp = map(x, 0, renderWidth, 1, PI/2);
                 // float angle = floor(map(n, 0 , 1, -PI, PI)/angleClamp)*angleClamp; //(randomGaussian()*angleClamp/10+angleClamp);
                 float angle = map(n, 0 , 1, -PI, PI); //for a 'normal' flow field
@@ -353,13 +446,13 @@ class PerlinFlowField extends Attractor{
         } 
     }
 
-    void calc_force_on(Particle p){
-        if(random(1)<0.0005){p.DEPOSIT_RATE*=max(randomGaussian()+5, 0);}
+    public void calc_force_on(Particle p){
+        if(random(1)<0.0005f){p.DEPOSIT_RATE*=max(randomGaussian()+5, 0);}
         p.vel.add( new PVector(cos(grid[constrain(ceil(p.pos.x),0,renderWidth-1)][constrain(ceil(p.pos.y),0,renderHeight-1)].x),sin(grid[constrain(ceil(p.pos.x),0,renderWidth-1)][constrain(ceil(p.pos.y),0,renderHeight-1)].x)).normalize());
 
     }
 
-    void display(){
+    public void display(){
       
     }
 }
@@ -372,23 +465,23 @@ class AttractorSystem{
   boolean scaleNoiseScale = true; //used when scaling pieces with noise into high res
   int attractorForce = 1000; //base force for the attractors
   boolean kill_Particles = true; //if true particles are removed when their age reaches 0
-  float damp = 0.0002; //applied to particle velocity every frame. set to 1 pill not dampen at all
+  float damp = 0.0002f; //applied to particle velocity every frame. set to 1 pill not dampen at all
   boolean normalize_attractor_force = true; //if normalize_attractor_force == true, kill_Particles should also = true
   boolean allow_Particle_overlap=false; //will determine if particles die phen they run into each other 
   float STEP_SIZE = 1;
   boolean DISCRETE_DIV_ANGLE = false;
   //noise parameters 
   int noiseOctaves = 8; //defines numbers of octaves. takes int value from 0-8. higher = more high-level structure
-  float noiseGain = 0.5; //defines how much of each octave carries over into the next (0,1). Higher = more small details
-  float noiseScale = 0.005; // 0.005 is 'best' but 0.1 or slightly higher can have more sweeping patterns 
+  float noiseGain = 0.5f; //defines how much of each octave carries over into the next (0,1). Higher = more small details
+  float noiseScale = 0.005f; // 0.005 is 'best' but 0.1 or slightly higher can have more sweeping patterns 
   //initial particle settings
-  float initial_TURN_CHANCES = 0.;
+  float initial_TURN_CHANCES = 0.f;
   float initial_TURN_ANGLE = PI/8;
-  float initial_DEPOSIT_RATE = 0.1;
-  float  initial_DIVISION_CHANCES = 0.00;
+  float initial_DEPOSIT_RATE = 0.1f;
+  float  initial_DIVISION_CHANCES = 0.00f;
   float initial_DIVISION_ANGLE = PI / 8;
-  float initial_TERMINATION_THRESHOLD = 0.7;
-  float initial_TERMINATION_CHANCES = initial_DIVISION_CHANCES * 0.;
+  float initial_TERMINATION_THRESHOLD = 0.7f;
+  float initial_TERMINATION_CHANCES = initial_DIVISION_CHANCES * 0.f;
   boolean initial_DISCRETE_DIV_ANGLE = false;
   float grid[];
 
@@ -421,11 +514,11 @@ class AttractorSystem{
     // attractors.add(new PerlinFlowField(noiseScale, noiseOctaves, scaleNoiseScale)); 
   }
 
-  void addPerlinFlowField(float _noiseScale, float _noiseOctaves, float _noiseGain, boolean _scaleNoiseScale){
+  public void addPerlinFlowField(float _noiseScale, float _noiseOctaves, float _noiseGain, boolean _scaleNoiseScale){
     attractors.add(new PerlinFlowField(_noiseScale, _noiseOctaves, _noiseGain, _scaleNoiseScale));
   }
 
-  void calculateAttractorSystem(){//logic that updates particles in the system
+  public void calculateAttractorSystem(){//logic that updates particles in the system
     ArrayList<Particle> newParticles = new ArrayList<Particle>();
 
     for (Particle p : particles) {
@@ -472,7 +565,7 @@ class AttractorSystem{
         npos = getTorusPosition(npos);
         // sample aggregate to check for collision
         int idx = ceil(npos.x) + ceil(npos.y) * renderWidth; 
-        int idxLast = int(p.pos.x) + int(p.pos.y) * renderWidth; //check to ensure particle moved to a new grid location on this step
+        int idxLast = PApplet.parseInt(p.pos.x) + PApplet.parseInt(p.pos.y) * renderWidth; //check to ensure particle moved to a new grid location on this step
         if (idx >= renderWidth*renderHeight || idx==idxLast) continue;
         float aggregate = grid[idx];
         // kill the particle if it will run on some aggregate
@@ -501,7 +594,7 @@ class Particle {
   PVector vel;
   float age;
   float mass;
-  color c;
+  int c;
   float TURN_CHANCES;
   float TURN_ANGLE;
   float DEPOSIT_RATE;
@@ -516,7 +609,7 @@ class Particle {
   Gradient yGrad =  new Gradient(background_palette);
   ArrayList<PVector> path;
   float STEP_SIZE = 1;
-  float damp=0.0002;
+  float damp=0.0002f;
   AttractorSystem attractorSystem;
 
   public Particle (AttractorSystem a, PVector p, float ang, float initial_TURN_CHANCES,float initial_TURN_ANGLE,float initial_DEPOSIT_RATE,float initial_DIVISION_CHANCES,float initial_DIVISION_ANGLE,float initial_TERMINATION_THRESHOLD,float initial_TERMINATION_CHANCES, float damp) 
@@ -535,7 +628,7 @@ class Particle {
     TERMINATION_THRESHOLD = initial_TERMINATION_THRESHOLD;
     TERMINATION_CHANCES = initial_TERMINATION_CHANCES;
     damp = damp;
-    age = randomGaussian()*(renderHeight*0.26667)/2+(renderHeight*0.26667);
+    age = randomGaussian()*(renderHeight*0.26667f)/2+(renderHeight*0.26667f);
     path = new ArrayList();
   }
 
@@ -550,15 +643,15 @@ class Particle {
     // c = img.get(int(map(random(renderWidth), 0, renderWidth, 0, img.width)), int(map(random(renderHeight), 0, renderHeight, 0, img.height)));
     if(abs(vel.x) > abs(vel.y)){
       // bright = randomGaussian()*5+45;
-      int baseColor = xGrad.eval(map(pos.x,0,renderWidth,0,1)+randomGaussian()*0.1, HSB);
+      int baseColor = xGrad.eval(map(pos.x,0,renderWidth,0,1)+randomGaussian()*0.1f, HSB);
       c = color(hue(baseColor) + randomGaussian(), saturation(baseColor) + randomGaussian()*8, brightness(baseColor) + randomGaussian()*8);
       }
     else{
       // bright = randomGaussian()*2+20;
-      int baseColor = yGrad.eval(map(pos.y,0,renderHeight,0,1)+randomGaussian()*0.1, HSB);
+      int baseColor = yGrad.eval(map(pos.y,0,renderHeight,0,1)+randomGaussian()*0.1f, HSB);
       c = color(hue(baseColor) + randomGaussian(), saturation(baseColor) + randomGaussian()*8, brightness(baseColor) + randomGaussian()*8);
     }
-    age = randomGaussian()*(renderHeight*0.26667)/2+(renderHeight*0.26667);
+    age = randomGaussian()*(renderHeight*0.26667f)/2+(renderHeight*0.26667f);
     path = new ArrayList();
   }
 
@@ -575,25 +668,25 @@ class Particle {
     // c = img.get(int(map(pos.x, 0, renderWidth, 0, img.width)), int(map(pos.y, 0, renderHeight, 0, img.height)));
     if(abs(vel.x) > abs(vel.y)){
       // bright = randomGaussian()*5+45;
-      int baseColor = xGrad.eval(map(pos.x,0,renderWidth,0,1)+randomGaussian()*0.1, HSB);
+      int baseColor = xGrad.eval(map(pos.x,0,renderWidth,0,1)+randomGaussian()*0.1f, HSB);
       c = color(hue(baseColor) + randomGaussian(), saturation(baseColor) + randomGaussian()*8, brightness(baseColor) + randomGaussian()*8);
       }
     else{
       // bright = randomGaussian()*2+20;
-      int baseColor = yGrad.eval(map(pos.y,0,renderHeight,0,1)+randomGaussian()*0.1, HSB);
+      int baseColor = yGrad.eval(map(pos.y,0,renderHeight,0,1)+randomGaussian()*0.1f, HSB);
       c = color(hue(baseColor) + randomGaussian(), saturation(baseColor) + randomGaussian()*8, brightness(baseColor) + randomGaussian()*8);
     }
     // c = color(0, 0, 100);
-    age = randomGaussian()*(renderHeight*0.26667)/2+(renderHeight*0.26667);
+    age = randomGaussian()*(renderHeight*0.26667f)/2+(renderHeight*0.26667f);
     boxBounds = bounds;
   }
   
-  void update () {
+  public void update () {
     lastPos = pos.copy();
     // vel = PVector.sub(pos, lastPos);
     // the Particle has a random chances to turn
     if (random(0, 1) < TURN_CHANCES) {
-      this.ang+= TURN_ANGLE * (round(random(0, 1)) * 2. - 1.);
+      this.ang+= TURN_ANGLE * (round(random(0, 1)) * 2.f - 1.f);
       vel.add(new PVector(cos(ang), sin(ang)));
 
     }
@@ -607,7 +700,7 @@ class Particle {
     age--;
   }
   
-  void display () {
+  public void display () {
     render.colorMode(HSB,360,100,100,100);
     float bright;
 
@@ -635,7 +728,7 @@ class Particle {
     }
   }
 
-  void displayPath(){
+  public void displayPath(){
     if(path.size()>1){
       for(int i=1; i<path.size(); i++){
         if(PVector.dist(path.get(i), path.get(i-1)) < STEP_SIZE*100){
@@ -724,7 +817,7 @@ class Particle {
 
 // }
 
-void keyPressed() {
+public void keyPressed() {
   switch (key) {
     case 's':
       render.save(saveFilePath + "-" + "SEED-" + str(seed) + ".png");
@@ -757,7 +850,7 @@ void keyPressed() {
 
 /* ********************** CHAIKIN CURVE FUNCTIONS **************************** */
 
-void chaikin_line(ArrayList<PVector> points, int layers, float layer_var, String mode){
+public void chaikin_line(ArrayList<PVector> points, int layers, float layer_var, String mode){
   PShape n = render.createShape();
   n.beginShape();
   for(int i=0; i<points.size(); i++){
@@ -766,22 +859,22 @@ void chaikin_line(ArrayList<PVector> points, int layers, float layer_var, String
   n.endShape();
   
   if(mode == "CLOSE"){
-    render.shape(chaikin_close(n, 0.25, 5), 0, 0);
+    render.shape(chaikin_close(n, 0.25f, 5), 0, 0);
   
     for(int i=0; i<=layers; i++){
-      render.shape(chaikin_close(perturbPShape(n, layer_var, layer_var), .25, 5),0,0);
+      render.shape(chaikin_close(perturbPShape(n, layer_var, layer_var), .25f, 5),0,0);
     }
   }
   else{
-    render.shape(chaikin_open(n, 0.25, 5), 0, 0);
+    render.shape(chaikin_open(n, 0.25f, 5), 0, 0);
   
     for(int i=0; i<=layers; i++){
-      render.shape(chaikin_open(perturbPShape(n, layer_var, layer_var), .25, 5),0,0);
+      render.shape(chaikin_open(perturbPShape(n, layer_var, layer_var), .25f, 5),0,0);
     }
   }
 }
 
-PShape perturbPShape(PShape s, float x_std, float y_std){
+public PShape perturbPShape(PShape s, float x_std, float y_std){
   PShape n = render.createShape();
   n.beginShape();
   for(int i=0; i<s.getVertexCount(); i++){
@@ -791,7 +884,7 @@ PShape perturbPShape(PShape s, float x_std, float y_std){
   return n;
 }
 
-ArrayList<PVector> chaikin_cut(PVector a, PVector b, float ratio) {
+public ArrayList<PVector> chaikin_cut(PVector a, PVector b, float ratio) {
   float x, y;
   ArrayList<PVector> n = new ArrayList<PVector>();
 
@@ -799,7 +892,7 @@ ArrayList<PVector> chaikin_cut(PVector a, PVector b, float ratio) {
    * If ratio is greater than 0.5 flip it so we avoid cutting across
    * the midpoint of the line.
    */
-   if (ratio > 0.5) ratio = 1 - ratio;
+   if (ratio > 0.5f) ratio = 1 - ratio;
 
   /* Find point at a given ratio going from A to B */
   x = lerp(a.x, b.x, ratio);
@@ -814,7 +907,7 @@ ArrayList<PVector> chaikin_cut(PVector a, PVector b, float ratio) {
   return n;
 }
 
-PShape chaikin(PShape shape, float ratio, int iterations, boolean close) {
+public PShape chaikin(PShape shape, float ratio, int iterations, boolean close) {
   // If the number of iterations is zero, return shape as is
   if (iterations == 0)
     return shape;
@@ -875,11 +968,11 @@ PShape chaikin(PShape shape, float ratio, int iterations, boolean close) {
   return chaikin(next, ratio, iterations - 1, close);
 }
 
-PShape chaikin_close(PShape original, float ratio, int iterations) {
+public PShape chaikin_close(PShape original, float ratio, int iterations) {
   return chaikin(original, ratio, iterations, true);
 }
 
-PShape chaikin_open(PShape original, float ratio, int iterations) {
+public PShape chaikin_open(PShape original, float ratio, int iterations) {
   return chaikin(original, ratio, iterations, false);
 }
 
@@ -910,13 +1003,13 @@ PShape chaikin_open(PShape original, float ratio, int iterations) {
 
 
 class ColorStop implements Comparable<ColorStop> {
-  static final float TOLERANCE = 0.09;
+  static final float TOLERANCE = 0.09f;
   float percent; //this is just used for sorting in the gradient class, could be thought of as a heirarchy with arbitrary scale
   int clr;
 
   ColorStop(int colorMode, float percent, float[] arr) {
     this(colorMode, percent, arr[0], arr[1], arr[2],
-      arr.length == 4 ? arr[3] : 1.0);
+      arr.length == 4 ? arr[3] : 1.0f);
   }
 
   ColorStop(int colorMode, float percent, float x, float y, float z, float w) {
@@ -925,17 +1018,17 @@ class ColorStop implements Comparable<ColorStop> {
   }
 
   ColorStop(float percent, int clr) {
-    this.percent = constrain(percent, 0.0, 1.0);
+    this.percent = constrain(percent, 0.0f, 1.0f);
     this.clr = clr;
   }
 
-  boolean approxPercent(ColorStop cs, float tolerance) {
+  public boolean approxPercent(ColorStop cs, float tolerance) {
     return abs(percent - cs.percent) < tolerance;
   }
 
   // Mandated by the interface Comparable<ColorStop>.
   // Permits color stops to be sorted by Collections.sort.
-  int compareTo(ColorStop cs) {
+  public int compareTo(ColorStop cs) {
     return percent > cs.percent ? 1 : percent < cs.percent ? -1 : 0;
   }
 }
@@ -951,7 +1044,7 @@ class Gradient {
   // Creates equidistant color stops.
   Gradient(int... colors) {
     int sz = colors.length;
-    float szf = sz <= 1.0 ? 1.0 : sz - 1.0;
+    float szf = sz <= 1.0f ? 1.0f : sz - 1.0f;
     for (int i = 0; i < sz; ++i) {
       colorStops.add(new ColorStop(i / szf, colors[i]));
     }
@@ -960,7 +1053,7 @@ class Gradient {
   // Creates equidistant color stops.
   Gradient(int colorMode, float[]... colors) {
     int sz = colors.length;
-    float szf = sz <= 1.0 ? 1.0 : sz - 1.0;
+    float szf = sz <= 1.0f ? 1.0f : sz - 1.0f;
     for (int i = 0; i < sz; ++i) {
       colorStops.add(new ColorStop(colorMode, i / szf, colors[i]));
     }
@@ -981,20 +1074,20 @@ class Gradient {
     remove();
   }
 
-  void add(int colorMode, float percent, float[] arr) {
+  public void add(int colorMode, float percent, float[] arr) {
     add(new ColorStop(colorMode, percent, arr));
   }
 
-  void add(int colorMode, float percent,
+  public void add(int colorMode, float percent,
     float x, float y, float z, float w) {
     add(new ColorStop(colorMode, percent, x, y, z, w));
   }
 
-  void add(final float percent, final int clr) {
+  public void add(final float percent, final int clr) {
     add(new ColorStop(percent, clr));
   }
 
-  void add(final ColorStop colorStop) {
+  public void add(final ColorStop colorStop) {
     for (int sz = colorStops.size(), i = sz - 1; i > 0; --i) {
       ColorStop current = colorStops.get(i);
       if (current.approxPercent(colorStop, ColorStop.TOLERANCE)) {
@@ -1006,19 +1099,19 @@ class Gradient {
     java.util.Collections.sort(colorStops);
   }
 
-  int eval(final float step) {
+  public int eval(final float step) {
     return eval(step, DEFAULT_COLOR_MODE);
   }
 
-  int eval(final float step, final int colorMode) {
+  public int eval(final float step, final int colorMode) {
     int sz = colorStops.size();
 
     // Exit from the function early whenever possible.
     if (sz == 0) {
       return 0x00000000;
-    } else if (sz == 1 || step < 0.0) {
+    } else if (sz == 1 || step < 0.0f) {
       return colorStops.get(0).clr;
-    } else if (step >= 1.0) {
+    } else if (step >= 1.0f) {
       return colorStops.get(sz - 1).clr;
     }
 
@@ -1068,15 +1161,15 @@ class Gradient {
     return colorStops.get(sz - 1).clr;
   }
 
-  boolean remove(ColorStop colorStop) {
+  public boolean remove(ColorStop colorStop) {
     return colorStops.remove(colorStop);
   }
 
-  ColorStop remove(int i) {
+  public ColorStop remove(int i) {
     return colorStops.remove(i);
   }
 
-  int remove() {
+  public int remove() {
     int removed = 0;
     for (int sz = colorStops.size(), i = sz - 1; i > 0; --i) {
       ColorStop current = colorStops.get(i);
@@ -1092,7 +1185,7 @@ class Gradient {
 }
 
 //ken perlin's smoother step functions
-float[] smootherStepRgb(float[][] arr, float st, float[] out) {
+public float[] smootherStepRgb(float[][] arr, float st, float[] out) {
   int sz = arr.length;
   if (sz == 1 || st < 0) {
     out = java.util.Arrays.copyOf(arr[0], 0);
@@ -1102,7 +1195,7 @@ float[] smootherStepRgb(float[][] arr, float st, float[] out) {
     return out;
   }
   float scl = st * (sz - 1);
-  int i = int(scl);
+  int i = PApplet.parseInt(scl);
   float eval = smootherStep(scl - i);
   out[0] = arr[i][0] + eval * (arr[i + 1][0] - arr[i][0]);
   out[1] = arr[i][1] + eval * (arr[i + 1][1] - arr[i][1]);
@@ -1111,7 +1204,7 @@ float[] smootherStepRgb(float[][] arr, float st, float[] out) {
   return out;
 }
 
-float[] smootherStepHsb(float[] a, float[] b, float st, float[] out) {
+public float[] smootherStepHsb(float[] a, float[] b, float st, float[] out) {
 
   // Find difference in hues.
   float huea = a[0];
@@ -1119,10 +1212,10 @@ float[] smootherStepHsb(float[] a, float[] b, float st, float[] out) {
   float delta = hueb - huea;
 
   // Prefer shortest distance.
-  if (delta < -0.5) {
-    hueb += 1.0;
-  } else if (delta > 0.5) {
-    huea += 1.0;
+  if (delta < -0.5f) {
+    hueb += 1.0f;
+  } else if (delta > 0.5f) {
+    huea += 1.0f;
   }
 
   float eval = smootherStep(st);
@@ -1136,11 +1229,11 @@ float[] smootherStepHsb(float[] a, float[] b, float st, float[] out) {
   return out;
 }
 
-float smootherStep(float st) {
-  return st * st * st * (st * (st * 6.0 - 15.0) + 10.0);
+public float smootherStep(float st) {
+  return st * st * st * (st * (st * 6.0f - 15.0f) + 10.0f);
 }
 
-float[] smootherStepRgb(float[] a, float[] b, float st, float[] out) {
+public float[] smootherStepRgb(float[] a, float[] b, float st, float[] out) {
   float eval = smootherStep(st);
   out[0] = a[0] + eval * (b[0] - a[0]);
   out[1] = a[1] + eval * (b[1] - a[1]);
@@ -1150,55 +1243,55 @@ float[] smootherStepRgb(float[] a, float[] b, float st, float[] out) {
 }
 
 //general utlities to work with bit representations of color 
-int composeclr(float[] in) {
+public int composeclr(float[] in) {
   return composeclr(in[0], in[1], in[2], in[3]);
 }
 
 // Assumes that RGBA are in range 0 .. 1.
-int composeclr(float red, float green, float blue, float alpha) {
-  return round(alpha * 255.0) << 24
-    | round(red * 255.0) << 16
-    | round(green * 255.0) << 8
-    | round(blue * 255.0);
+public int composeclr(float red, float green, float blue, float alpha) {
+  return round(alpha * 255.0f) << 24
+    | round(red * 255.0f) << 16
+    | round(green * 255.0f) << 8
+    | round(blue * 255.0f);
 }
 
-float[] decomposeclr(int clr) {
-  return decomposeclr(clr, new float[] { 0.0, 0.0, 0.0, 1.0 });
+public float[] decomposeclr(int clr) {
+  return decomposeclr(clr, new float[] { 0.0f, 0.0f, 0.0f, 1.0f });
 }
 
 // Assumes that out has 4 elements.
 // 1.0 / 255.0 = 0.003921569
-float[] decomposeclr(int clr, float[] out) {
-  out[3] = (clr >> 24 & 0xff) * 0.003921569;
-  out[0] = (clr >> 16 & 0xff) * 0.003921569;
-  out[1] = (clr >> 8 & 0xff) * 0.003921569;
-  out[2] = (clr & 0xff) * 0.003921569;
+public float[] decomposeclr(int clr, float[] out) {
+  out[3] = (clr >> 24 & 0xff) * 0.003921569f;
+  out[0] = (clr >> 16 & 0xff) * 0.003921569f;
+  out[1] = (clr >> 8 & 0xff) * 0.003921569f;
+  out[2] = (clr & 0xff) * 0.003921569f;
   return out;
 }
 
 
 //HSB to RBG fxns
-float[] hsbToRgb(float[] in) {
-  float[] out = new float[] { 0.0, 0.0, 0.0, 1.0 };
+public float[] hsbToRgb(float[] in) {
+  float[] out = new float[] { 0.0f, 0.0f, 0.0f, 1.0f };
   return hsbToRgb(in[0], in[1], in[2], in[3], out);
 }
 
-float[] hsbToRgb(float[] in, float[] out) {
+public float[] hsbToRgb(float[] in, float[] out) {
   if (in.length == 3) {
-    return hsbToRgb(in[0], in[1], in[2], 1.0, out);
+    return hsbToRgb(in[0], in[1], in[2], 1.0f, out);
   } else if (in.length == 4) {
     return hsbToRgb(in[0], in[1], in[2], in[3], out);
   }
   return out;
 }
 
-float[] hsbToRgb(float hue, float sat, float bri, float alpha) {
-  float[] out = new float[] { 0.0, 0.0, 0.0, 1.0 };
+public float[] hsbToRgb(float hue, float sat, float bri, float alpha) {
+  float[] out = new float[] { 0.0f, 0.0f, 0.0f, 1.0f };
   return hsbToRgb(hue, sat, bri, alpha, out);
 }
 
-float[] hsbToRgb(float hue, float sat, float bri, float alpha, float[] out) {
-  if (sat == 0.0) {
+public float[] hsbToRgb(float hue, float sat, float bri, float alpha, float[] out) {
+  if (sat == 0.0f) {
 
     // 0.0 saturation is grayscale, so all values are equal.
     out[0] = out[1] = out[2] = bri;
@@ -1206,14 +1299,14 @@ float[] hsbToRgb(float hue, float sat, float bri, float alpha, float[] out) {
 
     // Divide color wheel into 6 sectors.
     // Scale up hue to 6, convert to sector index.
-    float h = hue * 6.0;
-    int sector = int(h);
+    float h = hue * 6.0f;
+    int sector = PApplet.parseInt(h);
 
     // Depending on the sector, three tints will
     // be distributed among R, G, B channels.
-    float tint1 = bri * (1.0 - sat);
-    float tint2 = bri * (1.0 - sat * (h - sector));
-    float tint3 = bri * (1.0 - sat * (1.0 + sector - h));
+    float tint1 = bri * (1.0f - sat);
+    float tint2 = bri * (1.0f - sat * (h - sector));
+    float tint3 = bri * (1.0f - sat * (1.0f + sector - h));
 
     switch (sector) {
     case 1:
@@ -1241,31 +1334,31 @@ float[] hsbToRgb(float hue, float sat, float bri, float alpha, float[] out) {
 }
 
 //RGB to HSB fxns
-float[] rgbToHsb(int clr) {
-  return rgbToHsb(clr, new float[] { 0.0, 0.0, 0.0, 1.0 });
+public float[] rgbToHsb(int clr) {
+  return rgbToHsb(clr, new float[] { 0.0f, 0.0f, 0.0f, 1.0f });
 }
 
-float[] rgbToHsb(int clr, float[] out) {
-  return rgbToHsb((clr >> 16 & 0xff) * 0.003921569,
-    (clr >> 8 & 0xff) * 0.003921569,
-    (clr & 0xff) * 0.003921569,
-    (clr >> 24 & 0xff) * 0.003921569, out);
+public float[] rgbToHsb(int clr, float[] out) {
+  return rgbToHsb((clr >> 16 & 0xff) * 0.003921569f,
+    (clr >> 8 & 0xff) * 0.003921569f,
+    (clr & 0xff) * 0.003921569f,
+    (clr >> 24 & 0xff) * 0.003921569f, out);
 }
 
-float[] rgbToHsb(float[] in) {
-  return rgbToHsb(in, new float[] { 0.0, 0.0, 0.0, 1.0 });
+public float[] rgbToHsb(float[] in) {
+  return rgbToHsb(in, new float[] { 0.0f, 0.0f, 0.0f, 1.0f });
 }
 
-float[] rgbToHsb(float[] in, float[] out) {
+public float[] rgbToHsb(float[] in, float[] out) {
   if (in.length == 3) {
-    return rgbToHsb(in[0], in[1], in[2], 1.0, out);
+    return rgbToHsb(in[0], in[1], in[2], 1.0f, out);
   } else if (in.length == 4) {
     return rgbToHsb(in[0], in[1], in[2], in[3], out);
   }
   return out;
 }
 
-float[] rgbToHsb(float red, float green, float blue, float alpha, float[] out) {
+public float[] rgbToHsb(float red, float green, float blue, float alpha, float[] out) {
 
   // Find highest and lowest values.
   float max = max(red, green, blue);
@@ -1275,24 +1368,24 @@ float[] rgbToHsb(float red, float green, float blue, float alpha, float[] out) {
   float delta = max - min;
 
   // Calculate hue.
-  float hue = 0.0;
-  if (delta != 0.0) {
+  float hue = 0.0f;
+  if (delta != 0.0f) {
     if (red == max) {
       hue = (green - blue) / delta;
     } else if (green == max) {
-      hue = 2.0 + (blue - red) / delta;
+      hue = 2.0f + (blue - red) / delta;
     } else {
-      hue = 4.0 + (red - green) / delta;
+      hue = 4.0f + (red - green) / delta;
     }
 
-    hue /= 6.0;
-    if (hue < 0.0) {
-      hue += 1.0;
+    hue /= 6.0f;
+    if (hue < 0.0f) {
+      hue += 1.0f;
     }
   }
 
   out[0] = hue;
-  out[1] = max == 0.0 ? 0.0 : (max - min) / max;
+  out[1] = max == 0.0f ? 0.0f : (max - min) / max;
   out[2] = max;
   out[3] = alpha;
   return out;
@@ -1300,7 +1393,7 @@ float[] rgbToHsb(float red, float green, float blue, float alpha, float[] out) {
 
 //**********************************AD HOC ******************************************
 
-ArrayList<PVector> k_nearest_neighbors(PVector p, ArrayList<PVector> points, int k){ //originally used in kenny vaden sketch
+public ArrayList<PVector> k_nearest_neighbors(PVector p, ArrayList<PVector> points, int k){ //originally used in kenny vaden sketch
     ArrayList<PVector> knn = new ArrayList();
     ArrayList<PVector> tempPoints = new ArrayList(points);
 
@@ -1323,7 +1416,7 @@ ArrayList<PVector> k_nearest_neighbors(PVector p, ArrayList<PVector> points, int
 class Circle{ //originally used in kenny vaden sketch
     PVector center;
     float r;
-    color c;
+    int c;
 
     Circle(PVector p, float _r){
         center = p;
@@ -1331,11 +1424,21 @@ class Circle{ //originally used in kenny vaden sketch
         c = color(0,100,0);
     }
 
-    boolean isIn(PVector p){
+    public boolean isIn(PVector p){
         if(PVector.dist(p, center)<r){
             return true;
         }
         else{return false;}
     }
 
+}
+  public void settings() {  size(750, 750); }
+  static public void main(String[] passedArgs) {
+    String[] appletArgs = new String[] { "watershed" };
+    if (passedArgs != null) {
+      PApplet.main(concat(appletArgs, passedArgs));
+    } else {
+      PApplet.main(appletArgs);
+    }
+  }
 }

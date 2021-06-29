@@ -4,7 +4,7 @@
 //INCLUDE THESE GLOBAL VARIABLES  
 PGraphics render;
 PImage img;
-String saveFilePath = "../outputs/kenny_vaden_output-" + new java.text.SimpleDateFormat("yyyyMMdd-HHmmss").format(new java.util.Date()); //change the XXXX to current project name 
+String saveFilePath = "../outputs/watershed-" + new java.text.SimpleDateFormat("yyyyMMdd-HHmmss").format(new java.util.Date()); //change the XXXX to current project name 
 int printWidth = 6;
 int printHeight = 6;
 int printDpi = 300;
@@ -15,6 +15,8 @@ int renderWidth;
 int renderHeight;
 float scaleFactor = 1;
 int seed = 0;
+
+int[] line_palette, background_palette;
 
 //initialize 
 AttractorSystem as;
@@ -42,6 +44,7 @@ void doReset() { //initial setup and used in resetting for high-def export
 
  
     as = new AttractorSystem();
+    as.addPerlinFlowField(0.1, 4f, 0.5, true);
 
 }
 

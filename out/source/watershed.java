@@ -60,7 +60,9 @@ public void doReset() { //initial setup and used in resetting for high-def expor
 
  
     as = new AttractorSystem();
-    as.addPerlinFlowField(0.1f, 4f, 0.5f, true);
+    as.addPerlinFlowField(0.005f, 4, 0.5f, true);
+    as.addPerlinFlowField(0.01f, 8, 0.9f, false);
+
 
 }
 
@@ -406,29 +408,10 @@ class LorenzAttractor extends Attractor{
 
 class PerlinFlowField extends Attractor{
     PVector[][] grid;
-    // boolean scaleNoiseScale=true;
 
-    // PerlinFlowField(){
-    //     this.grid = new PVector[renderWidth][renderHeight];
-    //     float xoff = 0;
-    //     for(int x=0; x<renderWidth; x++){
-    //         float yoff = 0;
-    //         for(int y=0; y<renderHeight; y++){
-    //             float n = noise(xoff,yoff);
-    //             //playing around with clmaping the angles produces large effects  
-    //             float angleClamp = map(easing(map(x,0,renderWidth,0,1)),easing(0.),easing(1.),1, PI/2); // (PI/10); 
-    //             // float angleClamp = map(x, 0, renderWidth, 1, PI/2);
-    //             // float angle = floor(map(n, 0 , 1, -PI, PI)/angleClamp)*angleClamp; //(randomGaussian()*angleClamp/10+angleClamp);
-    //             float angle = map(n, 0 , 1, -PI, PI); //for a 'normal' flow field
-    //             grid[x][y] = new PVector(angle, n);
-    //             yoff += (renderHighRes && scaleNoiseScale) ? noiseScale/(printDpi/previewDpi) : noiseScale;;
-    //         }
-    //         xoff += (renderHighRes && scaleNoiseScale) ? noiseScale/(printDpi/previewDpi) : noiseScale; //noise works best with step size of 0.005
-    //     } 
-    // }
-
-    PerlinFlowField(float noiseScale, float noiseOctaves, float noiseGain, boolean scaleNoiseScale){
+    PerlinFlowField(float noiseScale, int noiseOctaves, float noiseGain, boolean scaleNoiseScale){
         this.grid = new PVector[renderWidth][renderHeight];
+        noiseDetail(noiseOctaves, noiseGain);
         float xoff = 0;
         for(int x=0; x<renderWidth; x++){
             float yoff = 0;
@@ -471,13 +454,13 @@ class AttractorSystem{
   float STEP_SIZE = 1;
   boolean DISCRETE_DIV_ANGLE = false;
   //noise parameters 
-  int noiseOctaves = 8; //defines numbers of octaves. takes int value from 0-8. higher = more high-level structure
-  float noiseGain = 0.5f; //defines how much of each octave carries over into the next (0,1). Higher = more small details
-  float noiseScale = 0.005f; // 0.005 is 'best' but 0.1 or slightly higher can have more sweeping patterns 
+  // int noiseOctaves = 8//defines numbers of octaves. takes int value from 0-8. higher = more high-level structure
+  // float noiseGain = 0.5; //defines how much of each octave carries over into the next (0,1). Higher = more small details
+  // float noiseScale = 0.005; // 0.005 is 'best' but 0.1 or slightly higher can have more sweeping patterns 
   //initial particle settings
   float initial_TURN_CHANCES = 0.f;
   float initial_TURN_ANGLE = PI/8;
-  float initial_DEPOSIT_RATE = 0.1f;
+  float initial_DEPOSIT_RATE = 0.01f;
   float  initial_DIVISION_CHANCES = 0.00f;
   float initial_DIVISION_ANGLE = PI / 8;
   float initial_TERMINATION_THRESHOLD = 0.7f;
@@ -514,7 +497,7 @@ class AttractorSystem{
     // attractors.add(new PerlinFlowField(noiseScale, noiseOctaves, scaleNoiseScale)); 
   }
 
-  public void addPerlinFlowField(float _noiseScale, float _noiseOctaves, float _noiseGain, boolean _scaleNoiseScale){
+  public void addPerlinFlowField(float _noiseScale, int _noiseOctaves, float _noiseGain, boolean _scaleNoiseScale){
     attractors.add(new PerlinFlowField(_noiseScale, _noiseOctaves, _noiseGain, _scaleNoiseScale));
   }
 
@@ -719,7 +702,7 @@ class Particle {
     // else{
     //   render.stroke(0,0,70, int(100*DEPOSIT_RATE));
     //   }
-    // render.stroke(, int(100*DEPOSIT_RATE));    
+    render.stroke(0, PApplet.parseInt(100*DEPOSIT_RATE));    
     PVector line = lastPos.copy().sub(pos);
     if (line.mag() < 4*STEP_SIZE) {
       render.line(lastPos.x, lastPos.y, pos.x, pos.y);

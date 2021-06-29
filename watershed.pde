@@ -44,7 +44,9 @@ void doReset() { //initial setup and used in resetting for high-def export
 
  
     as = new AttractorSystem();
-    as.addPerlinFlowField(0.1, 4f, 0.5, true);
+    as.addPerlinFlowField(0.005, 4, 0.5, true);
+    as.addPerlinFlowField(0.01, 8, 0.9, false);
+
 
 }
 

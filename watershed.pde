@@ -70,11 +70,43 @@ void doReset() { //initial setup and used in resetting for high-def export
     line = new ArrayList(); //generate a random line 
     int n = 50;
     for(int i=0; i<50; i++){
-        line.add(new PVector(map(i, 0, n-1, 0, renderWidth), renderHeight/2 + map(compoundTrigFunction(map(i, 0, n-1, 0, 2*TWO_PI)), -3, 4, -50, 50)));
+        line.add(new PVector(map(i, 0, n-1, 0, renderWidth), renderHeight/2 + map(compoundTrigFunction(map(i, 0, n-1, 0, 2*TWO_PI), 0), -3, 4, -50, 50)));
     }
 
     Ribbon r = new Ribbon(line, renderHighRes ? printDpi/previewDpi * 50 : 50);
     render.beginDraw();
+
+
+
+    float[] t = new float[400];
+    float scale = 2;
+    for(int i=0; i<t.length; i++){
+        t[i] = map(i, 0, t.length, -scale*TWO_PI, scale*TWO_PI);
+    }
+    int sample_size = int(t.length*0.5);
+    float rectSize = renderWidth/sample_size; 
+    int numRows=20;
+
+    for(int j=0; j < numRows; j++){
+        int start = int(map(j, 0 , numRows, 0, renderWidth*2/3)); //choose starting point in t for this row
+        ArrayList<PVector> tempLine = new ArrayList();
+
+        for(int i=0; i<sample_size*2; i++){
+            tempLine.add(new PVector(
+                i*rectSize, 
+                map(j, 0, numRows, renderHeight*0, renderHeight + randomGaussian()*(renderHighRes ? 10*printDpi/previewDpi : 10)) + (renderHighRes ? 10*printDpi/previewDpi : 10)*compoundTrigFunction(t[int((start+i)%t.length)], 0)
+            ));
+        }
+
+        Ribbon tempRibbon = new Ribbon(tempLine, 20);
+        tempRibbon.vadenWeb(500, 20, new Gradient(line_palette));
+        
+    }
+    render.stroke(0,0,100, 5);
+    canvas_overlay_example1();
+
+    
+    // render.endDraw();
 
     // Polygon poly = new Polygon(r.vertices, true);
     // poly.subdivide();
@@ -87,25 +119,7 @@ void doReset() { //initial setup and used in resetting for high-def export
 
     // r.noFill();
     // r.display();
-    ArrayList<PVector> points = r.generatePointsInside(5000);
-    Gradient lineGrad = new Gradient(line_palette);
-    float colorVar = 0.1;
 
-    // watercolorBackgroundTexture(background_palette, points, 3,  25f,  0.01,  4f);
-    
-    for(PVector p:points){
-
-
-        ArrayList<PVector> knn = k_nearest_neighbors(p, points, 10);
-        for(PVector k:knn){
-                 int baseColor = lineGrad.eval(map(k.y,0,renderHeight,0,1)+randomGaussian()*colorVar, HSB);
-                 render.stroke(hue(baseColor) + randomGaussian(), saturation(baseColor) + randomGaussian()*8, brightness(baseColor) + randomGaussian()*8);
-                 render.line(p.x, p.y, k.x, k.y);
-        }
-        // render.fill(0,100,100);
-        // render.ellipseMode(CENTER);
-        // render.ellipse(p.x, p.y, 5, 5); 
-    }
     
     render.endDraw();
 
@@ -142,4 +156,17 @@ void draw(){
     background(192);
     image(render, (width-outWidth)/2, (height - outHeight) / 2, outWidth, outHeight);
 
+}
+
+
+color lerpColor(color[] arr, float step, int colorMode) {
+  int sz = arr.length;
+  if (sz == 1 || step <= 0.0) {
+    return arr[0];
+  } else if (step >= 1.0) {
+    return arr[sz - 1];
+  }
+  float scl = step * (sz - 1);
+  int i = int(scl);
+  return lerpColor(arr[i], arr[i + 1], scl - i, colorMode);
 }

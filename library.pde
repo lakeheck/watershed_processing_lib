@@ -160,7 +160,50 @@ ArrayList<PVector> poissonDiskSampling(float radius, int k) {
 // int[] palette = new int[]{color(#ffe4cd), color(#703642), color(#703642), color(#abcdef), color(#4682b4)};
 // watercolorBackgroundTexture(new int[]{color(#ffe4cd), color(#703642), color(#703642), color(#abcdef), color(#4682b4)}, 5000, 5, 50, 0.1, 4); //red rocks scheme
 
-void watercolorBackgroundTexture(int[] baseColors, int numPoints, int numLayers, float geometryWidth, float colorVar, float jitter){
+// void watercolorBackgroundTexture(int[] baseColors, int numPoints, int numLayers, float geometryWidth, float colorVar, float jitter){
+//   //5000 points and 5 layers each is a good balance (with jitter of 4)
+
+//   Gradient grad = new Gradient(baseColors);
+
+//   // render.blendMode(ADD);
+//   render.colorMode(HSB, 360, 100,100,100);
+//   render.noStroke();
+//   for(int i=0; i<numPoints; i++){ //number of locations we drop geometry at
+//       render.pushMatrix();
+//       float x = random(-renderWidth/4, renderWidth*5/4);
+//       float y = random(-renderHeight/4, renderHeight*5/4);
+//       render.translate(x,y);
+//       int baseColor = grad.eval(map(x,0,renderWidth,0,1)+randomGaussian()*colorVar, HSB);
+//       float w = renderHighRes ? geometryWidth*printDpi/previewDpi : geometryWidth;
+//       for(int j=0; j<numLayers; j++){ //number of layers we drop for each of the locations
+//         render.rotate(map(j, 0, numLayers, 0, TWO_PI));
+//         render.fill(hue(baseColor) + randomGaussian(), saturation(baseColor) + randomGaussian()*8, brightness(baseColor) + randomGaussian()*8, 2+randomGaussian());
+//         w = w + randomGaussian()*w/4;
+//         // render.rect(0,0,w,w);
+//         render.beginShape();
+//         for(int k=0; k<8; k++){
+//           render.curveVertex(((w/2)+randomGaussian()*w/8)*cos(map(k,0,7,0,TWO_PI)), ((w/2)+randomGaussian()*w/8)*sin(map(k,0,7,0,TWO_PI))); 
+//           //the parametric equations used (e.g. (r*cos, r*sin) or (r*tan, r*sin) have a large impact on appearance 
+//           //(r*tan, r*tan), (r*sin, r*tan) and visa versa has a cool "woven" appearance that renders well in high resolution 
+//           //(r*cos, r*cos) has a more rough, geometric mix with hard lines. this also works well in high res
+//           //(r*sin, r*sin) is similar to the above but looks more well mixed in high res than (r*cos, r*cos)
+//           //(r*cos, r*tan) and visa versa has a blocky, chaotic pattern. does not render will in high res unless you are looking for some more geometric hard lines 
+//         }
+//         render.endShape(CLOSE);
+//       }
+//       render.popMatrix();
+//     }
+
+//     render.loadPixels();//then we jitter the resulting pixels to add some grainy vibes 
+//     for(int i=0; i<render.pixels.length; i++){
+//         color c = render.pixels[i];
+//         render.pixels[i] = color(hue(c)+random(-jitter, jitter), saturation(c)+randomGaussian()*jitter, brightness(c) + randomGaussian()*jitter/2);
+//     }
+//     render.updatePixels();
+// }
+
+
+void watercolorBackgroundTexture(int[] baseColors, ArrayList<PVector> points, int numLayers, float geometryWidth, float colorVar, float jitter){
   //5000 points and 5 layers each is a good balance (with jitter of 4)
 
   Gradient grad = new Gradient(baseColors);
@@ -168,10 +211,10 @@ void watercolorBackgroundTexture(int[] baseColors, int numPoints, int numLayers,
   // render.blendMode(ADD);
   render.colorMode(HSB, 360, 100,100,100);
   render.noStroke();
-  for(int i=0; i<numPoints; i++){ //number of locations we drop geometry at
+  for(int i=0; i<points.size(); i++){ //number of locations we drop geometry at
       render.pushMatrix();
-      float x = random(-renderWidth/4, renderWidth*5/4);
-      float y = random(-renderHeight/4, renderHeight*5/4);
+      float x = points.get(i).x;
+      float y = points.get(i).y;
       render.translate(x,y);
       int baseColor = grad.eval(map(x,0,renderWidth,0,1)+randomGaussian()*colorVar, HSB);
       float w = renderHighRes ? geometryWidth*printDpi/previewDpi : geometryWidth;
@@ -194,12 +237,12 @@ void watercolorBackgroundTexture(int[] baseColors, int numPoints, int numLayers,
       render.popMatrix();
     }
 
-    render.loadPixels();//then we jitter the resulting pixels to add some grainy vibes 
-    for(int i=0; i<render.pixels.length; i++){
-        color c = render.pixels[i];
-        render.pixels[i] = color(hue(c)+random(-jitter, jitter), saturation(c)+randomGaussian()*jitter, brightness(c) + randomGaussian()*jitter/2);
-    }
-    render.updatePixels();
+    // render.loadPixels();//then we jitter the resulting pixels to add some grainy vibes 
+    // for(int i=0; i<render.pixels.length; i++){
+    //     color c = render.pixels[i];
+    //     render.pixels[i] = color(hue(c)+random(-jitter, jitter), saturation(c)+randomGaussian()*jitter, brightness(c) + randomGaussian()*jitter/2);
+    // }
+    // render.updatePixels();
 }
 
 void restricted_chaikin_overlay(){
@@ -430,6 +473,35 @@ class AttractorSystem{
     // attractors.add(new PerlinFlowField(noiseScale, noiseOctaves, scaleNoiseScale)); 
   }
 
+  AttractorSystem(int n){
+    particles = new ArrayList<Particle>();
+    grid = new float[renderWidth*renderHeight];
+    NB_INITIAL_WALKERS = n;
+    NB_INITIAL_WALKERS *= renderHighRes ? printDpi/previewDpi : 1;
+    for (int i = 0; i < NB_INITIAL_WALKERS; i++) {
+
+        float ang = random(0, TWO_PI);
+        float x = random(renderWidth);
+        float y = random(renderHeight);
+        particles.add(
+        new Particle(this, 
+          new PVector(x, y), 
+          ang,
+          initial_TURN_CHANCES,
+          initial_TURN_ANGLE,
+          initial_DEPOSIT_RATE,
+          initial_DIVISION_CHANCES,
+          initial_DIVISION_ANGLE,
+          initial_TERMINATION_THRESHOLD,
+          initial_TERMINATION_CHANCES,
+          damp
+          )
+        );
+    }
+    attractors = new ArrayList<Attractor>();
+    // attractors.add(new PerlinFlowField(noiseScale, noiseOctaves, scaleNoiseScale)); 
+  }
+
   void addPerlinFlowField(float _noiseScale, int _noiseOctaves, float _noiseGain, boolean _scaleNoiseScale){
     attractors.add(new PerlinFlowField(_noiseScale, _noiseOctaves, _noiseGain, _scaleNoiseScale));
   }
@@ -457,7 +529,7 @@ class AttractorSystem{
         newParticles.add(nParticle);
         }
 
-        p.displayPath();
+        p.displayPath(int(randomGaussian()*50+200), randomGaussian()*2+8);
     }
 
     // adds the new particles to the active list
@@ -611,7 +683,7 @@ class Particle {
     pos.add(vel.copy().normalize().mult(STEP_SIZE));
     vel.mult(damp);
     // makes sure that the Particles stays within the window area
-    pos = getTorusPosition(pos);
+    // pos = getTorusPosition(pos);
     path.add(lastPos);
     age--;
   }
@@ -644,44 +716,12 @@ class Particle {
     }
   }
 
-  void displayPath(){
-    if(path.size()==100){
+  void displayPath(int path_length, float stroke_weight){
+    if(path.size()==path_length){
       render.fill(0,20);
-      Ribbon r = new Ribbon(path, 2);
-      // render.beginDraw();
+      Ribbon r = new Ribbon(path, stroke_weight);
       r.display();
-      // ArrayList<PVector> points = r.generatePointsInside(500);
-      // Gradient lineGrad = new Gradient(line_palette);
-      // float colorVar = 0.1;
-
-      // for(PVector p:points){
-
-          // ArrayList<PVector> knn = k_nearest_neighbors(p, points, 10);
-          // for(PVector k:knn){
-          //         int baseColor = lineGrad.eval(map(k.y,0,renderHeight,0,1)+randomGaussian()*colorVar, HSB);
-          //         render.stroke(hue(baseColor) + randomGaussian(), saturation(baseColor) + randomGaussian()*8, brightness(baseColor) + randomGaussian()*8);
-          //         render.line(p.x, p.y, k.x, k.y);
-          // }
-          // render.fill(0,100,100);
-          // render.ellipseMode(CENTER);
-          // render.ellipse(p.x, p.y, 5, 5); 
-        
-        // }
     } 
-    //   for(int i=1; i<path.size(); i++){
-    //     if(PVector.dist(path.get(i), path.get(i-1)) < STEP_SIZE*100){
-    //       render.rectMode(CORNERS);
-    //       render.fill(c,50);
-    //       render.noStroke();
-    //       // render.line(path.get(i-1).x, path.get(i-1).y, path.get(i).x, path.get(i).y);
-    //       PVector dir = new PVector(0,0,1).cross(new PVector((path.get(i).x-path.get(i-1).x), (path.get(i).y - path.get(i-1).y))).normalize();
-    //       PVector start = new PVector(path.get(i-1).x + 10*cos(dir.heading()), path.get(i-1).y + 10*sin(dir.heading())); 
-    //       PVector end = new PVector(path.get(i).x - 10*cos(dir.heading()), path.get(i).y - 10*sin(dir.heading())); 
-    //       render.rect(start.x, start.y, end.x, end.y);
-    //       // render.rect(path.get(i-1).x, path.get(i-1).y + 10*sin(dir.heading()),path.get(i-1).x, path.get(i).y - 10*sin(dir.heading())); 
-    //     }
-    //   }
-    // }
   }
 }
 
@@ -1430,3 +1470,357 @@ class Ribbon{ //class for drawing a ribbon based on a guide line (as used in flo
 
 }
 
+//**************************** POLYGON AND SUBDIVISION *****************************
+boolean continueSubdivision(float threshold){
+  boolean end = false;
+  for(Polygon p:polygons){
+    if(p.area > (renderWidth *renderHeight)*threshold){
+      end = true;
+      break;
+    }
+  }
+  return end;
+}
+
+class Face{
+  PVector p1;
+  PVector p2;
+  PVector normal;
+  PVector center;
+  color c = color(0,0,0);
+  color nc = color(0,100,100);;
+  boolean edge = false;
+  int frameLineCount = 0;
+  int frameLinesCast = 0;
+
+  Face(float x1, float y1, float x2, float y2, PVector n){
+    p1 = new PVector(x1, y1);
+    p2 = new PVector(x2, y2);
+    center = new PVector((p1.x+p2.x)/2, (p1.y+p2.y)/2);
+    normal = n; //used to designate an "outward" direction from the face 
+    if((x1==0 && y1==0) || (x1==0 && y1==renderHeight) || (x1==renderWidth && y1==0)) {edge=true;} //allow edges to remain eligible
+  }
+
+  Face(float x1, float y1, float x2, float y2){
+    p1 = new PVector(x1, y1);
+    p2 = new PVector(x2, y2);
+    center = new PVector((p1.x+p2.x)/2, (p1.y+p2.y)/2);
+    if((x1==0 && y1==0) || (x1==0 && y1==renderHeight) || (x1==renderWidth && y1==0)) {edge=true;}
+  }
+
+  PVector getRandomPoint(float _pct, float std){ //inputs are pct [0,1] and stdev [0,0.5]
+    float pct = randomGaussian()*std+_pct; //calc pct based on normal distro
+    PVector p = new PVector( //use random pct to pull a point 
+        map(pct, 0, 1, p1.x, p2.x),
+        map(pct, 0, 1, p1.y, p2.y)
+      );
+    return p;
+  }
+
+  void display(){
+    stroke(c);
+    line(p1.x, p1.y, p2.x, p2.y);
+    
+    if(showNormals){
+      stroke(nc);
+      int normal_length = 25;
+      line(center.x, center.y, center.x+normal_length*normal.x, center.y+normal_length*normal.y); 
+      ellipse(center.x+normal_length*normal.x, center.y+normal_length*normal.y, normal_length*0.2,normal_length*0.2);
+    }
+  }
+
+}
+
+class FrameLine extends Face{
+  
+  FrameLine(float x1, float y1, float x2, float y2){
+    super(x1,  y1,  x2,  y2);
+    normal = new PVector(0,0,1).cross(new PVector((x2-x1), (y2-y1))).normalize();
+    // normal = new PVector(n.x, n.y);
+    nc = color(75,100,100);
+    c = color(0);
+  }
+}
+
+class GeometricSubdivision{
+  ArrayList<Polygon> polygons;
+  ArrayList<Polygon> newPolygons;
+  ArrayList<Polygon> deadPolygons;
+
+  GeometricSubdivision(Polygon _p){
+    polygons = new ArrayList();
+    newPolygons = new ArrayList();
+    deadPolygons = new ArrayList();
+    this.polygons.add(_p);
+  }
+  
+  void subdivide(){
+    while(continueSubdivision(polygonAreaCutoff)){
+        this.newPolygons = new ArrayList();
+        for(Polygon p: polygons){
+          p.createChildren();
+        }
+        this.polygons = this.newPolygons;
+    }
+
+    for(Polygon p:this.deadPolygons){
+      this.polygons.add(p);
+    }
+
+    for(Polygon p: this.polygons){
+      for(PVector point:p.hull){
+        PVector shrinkDirection = PVector.sub(point, p.centroid).normalize();
+        float r = 0.9;
+        point.sub(shrinkDirection.mult(PVector.sub(point, p.centroid).mag()*(1-r)));
+      }
+    }
+  }
+
+  boolean continueSubdivision(float threshold){
+    boolean end = false;
+    for(Polygon p:this.polygons){
+      if(p.area > (renderWidth *renderHeight)*threshold){
+        end = true;
+        break;
+      }
+    }
+    return end;
+  }
+
+  void display(){
+    for(Polygon p: polygons){
+        p.display();
+    }
+  }
+}
+
+class Polygon{
+  ArrayList<PVector> points;
+  ArrayList<Face> edges;
+  color c;
+  ArrayList<PVector> hull;
+  int gen, maxChildren;
+  float pct, std, area;
+  ArrayList<Polygon> children;
+  boolean alive;
+  PVector centroid;
+  GeometricSubdivision geometricSubdivision;
+
+
+  Polygon(ArrayList<PVector> _p, boolean ordered){
+    if(ordered==false){
+      points = _p;
+      alive = true;
+      hull = new ArrayList();
+      edges = new ArrayList();
+      children = new ArrayList();
+      //TODO: need to solve inheritance mechanism (pass as args, or create and set)
+      maxChildren = 5;
+      gen=0;
+      pct = 0.5;
+      std = 0.1;
+      convexHull();
+      area = polygonArea();
+      centroid = findCentroid();
+      c = color(0,0,100); //colorGrad.eval(map(centroid.x, 0, renderWidth, 0, 1));
+      geometricSubdivision = new GeometricSubdivision(this);
+    }
+    else{
+      points = _p;
+      alive = true;
+      hull = _p;
+      edges = new ArrayList();
+      for(int i=1; i<hull.size(); i++){ //create FrameLines out of the convex hull
+        edges.add(new FrameLine(hull.get(i-1).x, hull.get(i-1).y, hull.get(i).x, hull.get(i).y));
+        }
+      children = new ArrayList();
+      //TODO: need to solve inheritance mechanism (pass as args, or create and set)
+      maxChildren = 5;
+      gen=0;
+      pct = 0.5;
+      std = 0.1;
+      area = polygonArea();
+      centroid = findCentroid();
+      c = color(0,0,100); //colorGrad.eval(map(centroid.x, 0, renderWidth, 0, 1));
+      geometricSubdivision = new GeometricSubdivision(this);
+    }
+  }
+
+  Polygon(ArrayList<PVector> _p, GeometricSubdivision _g){
+      points = _p;
+      alive = true;
+      hull = new ArrayList();
+      edges = new ArrayList();
+      children = new ArrayList();
+      //TODO: need to solve inheritance mechanism (pass as args, or create and set)
+      maxChildren = 5;
+      gen=0;
+      pct = 0.5;
+      std = 0.1;
+      convexHull();
+      area = polygonArea();
+      centroid = findCentroid();
+      c = color(0,0,100); //colorGrad.eval(map(centroid.x, 0, renderWidth, 0, 1));
+      geometricSubdivision = _g;
+    }
+
+
+  void convexHull(){ //implementing using the Mesh library
+    float[][] tempPoints = new float[points.size()][2]; //create 2d array for points to comply with library typing
+    for(int i=0; i<points.size(); i++){
+      tempPoints[i][0] = points.get(i).x;
+      tempPoints[i][1] = points.get(i).y;
+    }
+    
+    Hull tempHull = new Hull(tempPoints); //create hull from points
+    int[] temp = tempHull.getExtrema(); // returns hull points as indices of original points array
+
+    for(int i=0; i<temp.length; i++){
+      this.hull.add(points.get(temp[i])); //convert indices back to ArrayList of PVectors
+    }
+    this.hull.add(points.get(temp[0])); //re-add first point for closure
+
+    for(int i=1; i<hull.size(); i++){ //create FrameLines out of the convex hull
+      edges.add(new FrameLine(hull.get(i-1).x, hull.get(i-1).y, hull.get(i).x, hull.get(i).y));
+    }
+  }
+
+  PVector findCentroid(){
+    float x=0;
+    float y=0;
+    int n = hull.size();
+    // Calculate value of shoelace formula
+    int j = n - 1;
+    for (int i = 0; i < n; i++){
+      x += (hull.get(j).x + hull.get(i).x) * (hull.get(j).x * hull.get(i).y - hull.get(i).x*hull.get(j).y);
+      y += (hull.get(j).y+hull.get(i).y)*(hull.get(j).x*hull.get(i).y - hull.get(i).x*hull.get(j).y);
+      // j is previous vertex to i
+      j = i;
+    }
+    // Return absolute value
+    return getTorusPosition(new PVector(Math.abs(x)/(6*this.area),Math.abs(y)/(6*this.area)));
+  }
+
+  void display(){
+    render.fill(c,50);
+    // render.noStroke();
+    render.beginShape();
+    for(int i=0; i<hull.size(); i++){
+      render.vertex(hull.get(i).x, hull.get(i).y);
+    }
+    render.endShape(CLOSE);
+
+    // chaikin_line(this.hull, 3, 0.5, "CLOSE");
+
+  }
+
+  ArrayList<ArrayList<PVector>> split(int numDivisions){
+    ArrayList<ArrayList<PVector>> subdivisions = new ArrayList();
+    int idx=0; 
+    float max_length = 0;
+    for(int i=0; i<edges.size(); i++){ //pick the longest edge to start with. this created more well-proportioned subdivisions, less long skinny slices
+      if(PVector.sub(edges.get(i).p1, edges.get(i).p2).mag()>max_length){
+        max_length = PVector.sub(edges.get(i).p1, edges.get(i).p2).mag();
+        idx=i;
+      }
+    }
+
+    Face f = edges.get(idx); //start with longest face
+    PVector np1 = f.getRandomPoint(this.pct, this.std);
+
+    int new_idx = int(random(edges.size()-1)); //choose another face randomly (could be improved with some better logic for eligible / preffered faces)
+    new_idx = (new_idx>= idx) ? new_idx+1 : new_idx;
+    PVector np2 = edges.get(new_idx).getRandomPoint(this.pct, this.std);//select point from new face
+
+    FrameLine subdivisionEdge = new FrameLine(np1.x, np1.y, np2.x, np2.y);
+    edges.add(subdivisionEdge); 
+    int firstPointIndex = int(random(hull.size())); //first pick random point on the Polygon
+    PVector firstPoint = hull.get(firstPointIndex).copy();
+
+    ArrayList<PVector> newPolygon1 = new ArrayList();
+    newPolygon1.add(firstPoint); //arbitrarily add this to first new polygon
+    ArrayList<PVector> newPolygon2 = new ArrayList();
+    for(int i=0; i<hull.size(); i++){
+      if(i!=firstPointIndex){ //need to create temp vector from origin of subdivision edge normal vector to each point to test for direction
+        if(PVector.dot(PVector.sub(firstPoint,subdivisionEdge.center), subdivisionEdge.normal)*PVector.dot(PVector.sub(hull.get(i), subdivisionEdge.center), subdivisionEdge.normal)>0){//if they are facing the same way as the first point wrt subdivisionEdge plane 
+          newPolygon1.add(hull.get(i).copy()); //then we want to add to polygon 1
+        }
+        else{
+          newPolygon2.add(hull.get(i).copy());//otherwise we add to second polygon
+        }
+      }
+    }
+    // add both points from the subdividing edge to both new polygons
+    newPolygon1.add(subdivisionEdge.p1);
+    newPolygon1.add(subdivisionEdge.p2);
+    newPolygon2.add(subdivisionEdge.p1);
+    newPolygon2.add(subdivisionEdge.p2);
+    //now we have to collect all the points 
+
+    subdivisions.add(newPolygon1);
+    subdivisions.add(newPolygon2);
+
+    while(subdivisions.size()<numDivisions){
+      int childIndex = int(random(subdivisions.size()));
+      Polygon temp = new Polygon(subdivisions.get(childIndex), false);
+      ArrayList<ArrayList<PVector>> newSubdivisionsFromChild = temp.split(2); //call this function to reutrn the subdivisions from the removed set of points
+      for(ArrayList<PVector> p:newSubdivisionsFromChild){
+        subdivisions.add(p);
+      }
+      subdivisions.remove(childIndex); //remove the set of poitns that is being subdivided to avoid double counting 
+    }
+    this.alive = false;
+    return subdivisions;
+
+  }
+
+  void subdivide(){
+    geometricSubdivision.subdivide();
+  }
+
+  float polygonArea(){
+    area = 0.0;
+    int n = hull.size();
+    // Calculate value of shoelace formula
+    int j = n - 1;
+    for (int i = 0; i < n; i++){
+      area += (hull.get(j).x + hull.get(i).x) * (hull.get(j).y - hull.get(i).y);
+        
+      // j is previous vertex to i
+      j = i;
+    }
+
+    // Return absolute value
+    return Math.abs(area / 2.0);
+    
+  }
+
+  void createChildren(){ 
+
+    if(this.alive && this.area > (renderWidth*renderHeight)*polygonAreaCutoff){
+      ArrayList<ArrayList<PVector>> subdivisions = this.split(this.maxChildren);
+      int idx = int(random(subdivisions.size()));
+      for(int i=0; i<subdivisions.size(); i++){
+        Polygon p = new Polygon(subdivisions.get(i), this.geometricSubdivision);
+        p.pct = this.pct;
+        p.std = this.std;
+        p.maxChildren = this.maxChildren;
+        p.gen = this.gen+1;
+        // p.c = (random(1)<map(noiseGrid[constrain(ceil(p.centroid.x),0,renderWidth-1)][constrain(ceil(p.centroid.y),0,renderHeight-1)].y, 0, 1, 0, 0.2))? palette[int(random(palette.length))] : color(hue(c), saturation(c) + 1, brightness(c) - 1); //this could be driven off some noise or other flow field
+        p.alive = (idx==i && random(1) < 0.5 && p.gen > 1) ? false : true;
+        this.geometricSubdivision.newPolygons.add(p);
+        children.add(p);
+      }
+    }
+    else{
+      this.geometricSubdivision.deadPolygons.add(this);
+    }
+  }
+
+  void displayChildren(){
+    for(Polygon c:children){
+      if(c.alive){c.display();}
+    }
+  }
+  
+}

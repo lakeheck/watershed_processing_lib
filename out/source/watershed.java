@@ -33,7 +33,7 @@ float scaleFactor = 1;
 int seed = 0;
 
 int[] line_palette, background_palette;
-
+ArrayList<PVector> line;
 //initialize 
 AttractorSystem as;
 
@@ -42,6 +42,10 @@ public void setup(){
     background(255);
     colorMode(HSB, 360, 100, 100, 100);
     doReset();
+}
+
+public float compoundTrigFunction(float x){
+    return sin(x) + 3*cos(x);
 }
 
 
@@ -58,14 +62,92 @@ public void doReset() { //initial setup and used in resetting for high-def expor
     background_palette = new int[]{color(0xff0f0f0e), color(0xff382a04), color(0xff141524), color(0xff170d1f), color(0xff000000)};
     line_palette = new int[]{color(0xff382a04), color(0xff594a1f), color(0xff073610), color(0xff18361e), color(0xff243618), color(0xff313622), color(0xff473216)};
 
- 
-    as = new AttractorSystem();
-    as.addPerlinFlowField(0.005f, 4, 0.5f, true);
-    as.addPerlinFlowField(0.01f, 8, 0.9f, false);
+    
+    line = new ArrayList();
+    int n = 50;
+    for(int i=0; i<50; i++){
+        line.add(new PVector(map(i, 0, n-1, 0, renderWidth), renderHeight/2 + map(compoundTrigFunction(map(i, 0, n-1, 0, TWO_PI)), -3, 4, -50, 50)));
+    }
+
+
+    ArrayList<PVector> top = new ArrayList();
+    ArrayList<PVector> btm = new ArrayList();
+
+    for(int i=1; i<line.size(); i++){
+        PVector norm = new PVector(0,0,1).cross(new PVector((line.get(i).x - line.get(i-1).x), (line.get(i).y - line.get(i-1).y))).normalize();
+        float theta = norm.heading();
+        top.add(new PVector(line.get(i).x + 50*cos(theta), line.get(i).y + 50*sin(theta)));
+        btm.add(new PVector(line.get(i).x - 50*cos(theta), line.get(i).y - 50*sin(theta)));
+    }
+
+    ArrayList<PVector> verts = new ArrayList();
+
+
+    render.beginDraw();
+    render.colorMode(HSB, 360, 100, 100, 100);
+    render.beginShape();
+    for(int i=0; i<((top.size() + btm.size())); i++){
+        render.vertex(
+            i<top.size() ? top.get(i).x : btm.get(btm.size() -1 - (i-top.size())).x,
+            i<top.size() ? top.get(i).y : btm.get(btm.size() -1 - (i-top.size())).y
+            );
+        verts.add(
+            i<top.size() ? top.get(i).copy() : btm.get(btm.size()-1-(i-top.size())).copy()
+        );
+    }
+    render.endShape(CLOSE);
+
+    // PVector[] points = new PVector[50];
+    for(int i=0; i<500; i++){
+        PVector p= new PVector(random(renderWidth), random(renderHeight));
+        if(polyPoint(verts, p.x, p.y)){
+            render.fill(0,100,100);
+            render.ellipseMode(CENTER);
+            render.ellipse(p.x, p.y, 5, 5); 
+        }
+        else{            
+            render.fill(40,100,100);
+            render.ellipseMode(CENTER);
+            render.ellipse(p.x, p.y, 5, 5); 
+        }
+    }
+    render.endDraw();
+
+    // as = new AttractorSystem();
+    // as.addPerlinFlowField(0.005, 4, 0.5, true);
+    // as.addPerlinFlowField(0.01, 8, 0.9, false);
 
 
 }
 
+
+public boolean polyPoint(ArrayList<PVector> vertices, float px, float py) {
+  boolean collision = false;
+
+  // go through each of the vertices, plus
+  // the next vertex in the list
+  int next = 0;
+  for (int current=0; current<vertices.size(); current++) {
+
+    // get next vertex in list
+    // if we've hit the end, wrap around to 0
+    next = current+1;
+    if (next == vertices.size()) next = 0;
+
+    // get the PVectors at our current position
+    // this makes our if statement a little cleaner
+    PVector vc = vertices.get(current);    // c for "current"
+    PVector vn = vertices.get(next);       // n for "next"
+
+    // compare position, flip 'collision' variable
+    // back and forth
+    if (((vc.y >= py && vn.y < py) || (vc.y < py && vn.y >= py)) &&
+         (px < (vn.x-vc.x)*(py-vc.y) / (vn.y-vc.y)+vc.x)) {
+            collision = !collision;
+    }
+  }
+  return collision;
+}
 
 
 public void draw(){
@@ -73,10 +155,11 @@ public void draw(){
     if(firstFrame){
         firstFrame = false;
         render.colorMode(HSB, 360,100,100,100);
+        render.fill(0);
     }
-    
+
     //ANY LOGIC USED TO DRAW GOES HERE
-    as.calculateAttractorSystem();
+    // as.calculateAttractorSystem();
     render.endDraw(); //some settings to display the render object on screen
     int outWidth, outHeight;
     

@@ -12,7 +12,7 @@ PVector getTorusPosition (PVector position) {
   return pos;
 }
 
-/* ************************ INTERSECTION TESTS ******************************/
+/* ************************ INTERSECTION AND COLLISION TESTS ******************************/
 boolean lineLine(float x1, float y1, float x2, float y2, float x3, float y3, float x4, float y4) {
 
   // calculate the direction of the lines
@@ -24,6 +24,34 @@ boolean lineLine(float x1, float y1, float x2, float y2, float x3, float y3, flo
     return true;
   }
   return false;
+}
+
+boolean polyPoint(ArrayList<PVector> vertices, float px, float py) {
+  boolean collision = false;
+
+  // go through each of the vertices, plus
+  // the next vertex in the list
+  int next = 0;
+  for (int current=0; current<vertices.size(); current++) {
+
+    // get next vertex in list
+    // if we've hit the end, wrap around to 0
+    next = current+1;
+    if (next == vertices.size()) next = 0;
+
+    // get the PVectors at our current position
+    // this makes our if statement a little cleaner
+    PVector vc = vertices.get(current);    // c for "current"
+    PVector vn = vertices.get(next);       // n for "next"
+
+    // compare position, flip 'collision' variable
+    // back and forth
+    if (((vc.y >= py && vn.y < py) || (vc.y < py && vn.y >= py)) &&
+         (px < (vn.x-vc.x)*(py-vc.y) / (vn.y-vc.y)+vc.x)) {
+            collision = !collision;
+    }
+  }
+  return collision;
 }
 
 /************************** EASING FUNCTIONS ********************************/
@@ -349,7 +377,7 @@ class AttractorSystem{
   ArrayList<Particle> particles;
   ArrayList<Attractor> attractors;
   int num_attractors = 15;
-  int NB_INITIAL_WALKERS = 10000;
+  int NB_INITIAL_WALKERS = 100;
   boolean scaleNoiseScale = true; //used when scaling pieces with noise into high res
   int attractorForce = 1000; //base force for the attractors
   boolean kill_Particles = true; //if true particles are removed when their age reaches 0
@@ -429,7 +457,7 @@ class AttractorSystem{
         newParticles.add(nParticle);
         }
 
-        p.display();
+        p.displayPath();
     }
 
     // adds the new particles to the active list
@@ -617,21 +645,43 @@ class Particle {
   }
 
   void displayPath(){
-    if(path.size()>1){
-      for(int i=1; i<path.size(); i++){
-        if(PVector.dist(path.get(i), path.get(i-1)) < STEP_SIZE*100){
-          render.rectMode(CORNERS);
-          render.fill(c,50);
-          render.noStroke();
-          // render.line(path.get(i-1).x, path.get(i-1).y, path.get(i).x, path.get(i).y);
-          PVector dir = new PVector(0,0,1).cross(new PVector((path.get(i).x-path.get(i-1).x), (path.get(i).y - path.get(i-1).y))).normalize();
-          PVector start = new PVector(path.get(i-1).x + 10*cos(dir.heading()), path.get(i-1).y + 10*sin(dir.heading())); 
-          PVector end = new PVector(path.get(i).x - 10*cos(dir.heading()), path.get(i).y - 10*sin(dir.heading())); 
-          render.rect(start.x, start.y, end.x, end.y);
-          // render.rect(path.get(i-1).x, path.get(i-1).y + 10*sin(dir.heading()),path.get(i-1).x, path.get(i).y - 10*sin(dir.heading())); 
-        }
-      }
-    }
+    if(path.size()==100){
+      render.fill(0,20);
+      Ribbon r = new Ribbon(path, 2);
+      // render.beginDraw();
+      r.display();
+      // ArrayList<PVector> points = r.generatePointsInside(500);
+      // Gradient lineGrad = new Gradient(line_palette);
+      // float colorVar = 0.1;
+
+      // for(PVector p:points){
+
+          // ArrayList<PVector> knn = k_nearest_neighbors(p, points, 10);
+          // for(PVector k:knn){
+          //         int baseColor = lineGrad.eval(map(k.y,0,renderHeight,0,1)+randomGaussian()*colorVar, HSB);
+          //         render.stroke(hue(baseColor) + randomGaussian(), saturation(baseColor) + randomGaussian()*8, brightness(baseColor) + randomGaussian()*8);
+          //         render.line(p.x, p.y, k.x, k.y);
+          // }
+          // render.fill(0,100,100);
+          // render.ellipseMode(CENTER);
+          // render.ellipse(p.x, p.y, 5, 5); 
+        
+        // }
+    } 
+    //   for(int i=1; i<path.size(); i++){
+    //     if(PVector.dist(path.get(i), path.get(i-1)) < STEP_SIZE*100){
+    //       render.rectMode(CORNERS);
+    //       render.fill(c,50);
+    //       render.noStroke();
+    //       // render.line(path.get(i-1).x, path.get(i-1).y, path.get(i).x, path.get(i).y);
+    //       PVector dir = new PVector(0,0,1).cross(new PVector((path.get(i).x-path.get(i-1).x), (path.get(i).y - path.get(i-1).y))).normalize();
+    //       PVector start = new PVector(path.get(i-1).x + 10*cos(dir.heading()), path.get(i-1).y + 10*sin(dir.heading())); 
+    //       PVector end = new PVector(path.get(i).x - 10*cos(dir.heading()), path.get(i).y - 10*sin(dir.heading())); 
+    //       render.rect(start.x, start.y, end.x, end.y);
+    //       // render.rect(path.get(i-1).x, path.get(i-1).y + 10*sin(dir.heading()),path.get(i-1).x, path.get(i).y - 10*sin(dir.heading())); 
+    //     }
+    //   }
+    // }
   }
 }
 
@@ -1320,3 +1370,63 @@ class Circle{ //originally used in kenny vaden sketch
     }
 
 }
+
+float compoundTrigFunction(float x){ //allows compounding of trig functions for interesting lines 
+    return sin(x) + 3*cos(x);
+}
+
+
+class Ribbon{ //class for drawing a ribbon based on a guide line (as used in flow fields, etc)
+    ArrayList<PVector> vertices;
+
+    Ribbon(ArrayList<PVector> guideLine, float stroke_weight){ //should be initialized with ordered set of points 
+        vertices = new ArrayList();
+
+        
+        ArrayList<PVector> top = new ArrayList();
+        ArrayList<PVector> btm = new ArrayList();
+        for(int i=1; i<guideLine.size(); i++){
+            PVector norm = new PVector(0,0,1).cross(new PVector((guideLine.get(i).x - guideLine.get(i-1).x), (guideLine.get(i).y - guideLine.get(i-1).y))).normalize();
+            float theta = norm.heading();
+            top.add(new PVector(guideLine.get(i).x + stroke_weight*cos(theta), guideLine.get(i).y + stroke_weight*sin(theta)));
+            btm.add(new PVector(guideLine.get(i).x - stroke_weight*cos(theta), guideLine.get(i).y - stroke_weight*sin(theta)));
+        }
+    
+        for(int i=0; i<((top.size() + btm.size())); i++){ // unwrap the top and bottom arrays - first we add all the top points, then start fro the end of hte bottom array to maintain non-self intersection
+            vertices.add(
+                i<top.size() ? top.get(i).copy() : btm.get(btm.size()-1-(i-top.size())).copy()
+            );
+        }
+    }
+
+    boolean contains(PVector point){
+        return polyPoint(vertices, point.x, point.y);
+    }
+
+    ArrayList<PVector> generatePointsInside(int n){
+        ArrayList<PVector> points = new ArrayList();
+        int count = 0;
+        while(count <= n){
+            PVector p = new PVector(random(renderWidth), random(renderHeight));
+            if(polyPoint(this.vertices, p.x, p.y)){
+                points.add(p);
+                count++;
+            }
+        }
+        return points;
+    }
+
+    void display(){
+        render.beginShape();
+        for(int i=0; i<vertices.size(); i++){
+            render.vertex(
+                vertices.get(i).x,
+                vertices.get(i).y
+                );
+        }
+        render.endShape(CLOSE);
+    }
+
+
+}
+

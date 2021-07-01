@@ -69,53 +69,116 @@ public void doReset() { //initial setup and used in resetting for high-def expor
         line.add(new PVector(map(i, 0, n-1, 0, renderWidth), renderHeight/2 + map(compoundTrigFunction(map(i, 0, n-1, 0, TWO_PI)), -3, 4, -50, 50)));
     }
 
-
-    ArrayList<PVector> top = new ArrayList();
-    ArrayList<PVector> btm = new ArrayList();
-
-    for(int i=1; i<line.size(); i++){
-        PVector norm = new PVector(0,0,1).cross(new PVector((line.get(i).x - line.get(i-1).x), (line.get(i).y - line.get(i-1).y))).normalize();
-        float theta = norm.heading();
-        top.add(new PVector(line.get(i).x + 50*cos(theta), line.get(i).y + 50*sin(theta)));
-        btm.add(new PVector(line.get(i).x - 50*cos(theta), line.get(i).y - 50*sin(theta)));
-    }
-
-    ArrayList<PVector> verts = new ArrayList();
-
-
+    Ribbon r = new Ribbon(line);
     render.beginDraw();
-    render.colorMode(HSB, 360, 100, 100, 100);
-    render.beginShape();
-    for(int i=0; i<((top.size() + btm.size())); i++){
-        render.vertex(
-            i<top.size() ? top.get(i).x : btm.get(btm.size() -1 - (i-top.size())).x,
-            i<top.size() ? top.get(i).y : btm.get(btm.size() -1 - (i-top.size())).y
-            );
-        verts.add(
-            i<top.size() ? top.get(i).copy() : btm.get(btm.size()-1-(i-top.size())).copy()
-        );
+    r.display();
+    ArrayList<PVector> points = r.generatePointsInside(50);
+
+    for(PVector p:points){
+        render.fill(0,100,100);
+        render.ellipseMode(CENTER);
+        render.ellipse(p.x, p.y, 5, 5); 
     }
-    render.endShape(CLOSE);
+    // ArrayList<PVector> top = new ArrayList();
+    // ArrayList<PVector> btm = new ArrayList();
+
+    // for(int i=1; i<line.size(); i++){
+    //     PVector norm = new PVector(0,0,1).cross(new PVector((line.get(i).x - line.get(i-1).x), (line.get(i).y - line.get(i-1).y))).normalize();
+    //     float theta = norm.heading();
+    //     top.add(new PVector(line.get(i).x + 50*cos(theta), line.get(i).y + 50*sin(theta)));
+    //     btm.add(new PVector(line.get(i).x - 50*cos(theta), line.get(i).y - 50*sin(theta)));
+    // }
+
+    // ArrayList<PVector> verts = new ArrayList();
+
+
+    // render.beginDraw();
+    // render.colorMode(HSB, 360, 100, 100, 100);
+    // render.beginShape();
+    // for(int i=0; i<((top.size() + btm.size())); i++){
+    //     render.vertex(
+    //         i<top.size() ? top.get(i).x : btm.get(btm.size() -1 - (i-top.size())).x,
+    //         i<top.size() ? top.get(i).y : btm.get(btm.size() -1 - (i-top.size())).y
+    //         );
+    //     verts.add(
+    //         i<top.size() ? top.get(i).copy() : btm.get(btm.size()-1-(i-top.size())).copy()
+    //     );
+    // }
+    // render.endShape(CLOSE);
 
     // PVector[] points = new PVector[50];
-    for(int i=0; i<500; i++){
-        PVector p= new PVector(random(renderWidth), random(renderHeight));
-        if(polyPoint(verts, p.x, p.y)){
-            render.fill(0,100,100);
-            render.ellipseMode(CENTER);
-            render.ellipse(p.x, p.y, 5, 5); 
-        }
-        else{            
-            render.fill(40,100,100);
-            render.ellipseMode(CENTER);
-            render.ellipse(p.x, p.y, 5, 5); 
-        }
-    }
+    // for(int i=0; i<500; i++){
+    //     PVector p= new PVector(random(renderWidth), random(renderHeight));
+    //     if(polyPoint(verts, p.x, p.y)){
+    //         render.fill(0,100,100);
+    //         render.ellipseMode(CENTER);
+    //         render.ellipse(p.x, p.y, 5, 5); 
+    //     }
+    //     else{            
+    //         render.fill(40,100,100);
+    //         render.ellipseMode(CENTER);
+    //         render.ellipse(p.x, p.y, 5, 5); 
+    //     }
+    // }
     render.endDraw();
 
     // as = new AttractorSystem();
     // as.addPerlinFlowField(0.005, 4, 0.5, true);
     // as.addPerlinFlowField(0.01, 8, 0.9, false);
+
+
+}
+
+class Ribbon{ //class for drawing a ribbon based on a guide line (as used in flow fields, etc)
+    ArrayList<PVector> vertices;
+
+    Ribbon(ArrayList<PVector> v){ //should be initialized with ordered set of points 
+        vertices = new ArrayList();
+
+        
+        ArrayList<PVector> top = new ArrayList();
+        ArrayList<PVector> btm = new ArrayList();
+        for(int i=1; i<line.size(); i++){
+            PVector norm = new PVector(0,0,1).cross(new PVector((line.get(i).x - line.get(i-1).x), (line.get(i).y - line.get(i-1).y))).normalize();
+            float theta = norm.heading();
+            top.add(new PVector(line.get(i).x + 50*cos(theta), line.get(i).y + 50*sin(theta)));
+            btm.add(new PVector(line.get(i).x - 50*cos(theta), line.get(i).y - 50*sin(theta)));
+        }
+    
+        for(int i=0; i<((top.size() + btm.size())); i++){ // unwrap the top and bottom arrays - first we add all the top points, then start fro the end of hte bottom array to maintain non-self intersection
+            vertices.add(
+                i<top.size() ? top.get(i).copy() : btm.get(btm.size()-1-(i-top.size())).copy()
+            );
+        }
+    }
+
+    public boolean contains(PVector point){
+        return polyPoint(vertices, point.x, point.y);
+    }
+
+    public ArrayList<PVector> generatePointsInside(int n){
+        ArrayList<PVector> points = new ArrayList();
+        int count = 0;
+        while(count <= n){
+            PVector p = new PVector(random(renderWidth), random(renderHeight));
+            if(polyPoint(this.vertices, p.x, p.y)){
+                points.add(p);
+                count++;
+            }
+        }
+        return points;
+    }
+
+    public void display(){
+        render.beginShape();
+        for(int i=0; i<vertices.size(); i++){
+            render.vertex(
+                vertices.get(i).x,
+                vertices.get(i).y
+                );
+        }
+        render.endShape(CLOSE);
+    }
 
 
 }

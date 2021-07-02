@@ -719,7 +719,7 @@ class Particle {
   void displayPath(int path_length, float stroke_weight){
     if(path.size()==path_length){
       render.fill(0,20);
-      Ribbon r = new Ribbon(path, stroke_weight);
+      Ribbon r = new Ribbon(path, stroke_weight, false);
       r.display();
     } 
   }
@@ -1415,7 +1415,7 @@ float compoundTrigFunction(float x, int choice){ //allows compounding of trig fu
     float coeff1 = 3; //random(2,5);
     float coeff2 = 4; //random(2,5);
     float coeff3 = 5; //random(2,6);
-    float coeff4 = 4;// random(4,5);
+    float coeff4 = 4;// (4,5);
     switch(choice){
       case 0: return cos(x*coeff1+coeff2) - coeff3*sin(randomGaussian()*0.01 + x) + cos(coeff4*x)*pow(sin(pow(x,2)), 2);
       default: return sin(x) + coeff3 * cos(random(2,4)*x);
@@ -1426,24 +1426,30 @@ float compoundTrigFunction(float x, int choice){ //allows compounding of trig fu
 class Ribbon{ //class for drawing a ribbon based on a guide line (as used in flow fields, etc)
     ArrayList<PVector> vertices;
 
-    Ribbon(ArrayList<PVector> guideLine, float stroke_weight){ //should be initialized with ordered set of points 
+    Ribbon(ArrayList<PVector> guideLine, float stroke_weight, boolean closed){ //should be initialized with ordered set of points 
+        // closed bool value set to false if the input line is an open loop (and must be "expanded" into a region)
+        //close bool should be set to true if the input list of points forms a closed loop
         vertices = new ArrayList();
-
+        if(closed){
+          vertices.addAll(guideLine);
+        }
+        else{
+          ArrayList<PVector> top = new ArrayList();
+          ArrayList<PVector> btm = new ArrayList();
+          for(int i=1; i<guideLine.size(); i++){
+              PVector norm = new PVector(0,0,1).cross(new PVector((guideLine.get(i).x - guideLine.get(i-1).x), (guideLine.get(i).y - guideLine.get(i-1).y))).normalize();
+              float theta = norm.heading();
+              top.add(new PVector(guideLine.get(i).x + stroke_weight*cos(theta), guideLine.get(i).y + stroke_weight*sin(theta)));
+              btm.add(new PVector(guideLine.get(i).x - stroke_weight*cos(theta), guideLine.get(i).y - stroke_weight*sin(theta)));
+          }
+      
+          for(int i=0; i<((top.size() + btm.size())); i++){ // unwrap the top and bottom arrays - first we add all the top points, then start fro the end of hte bottom array to maintain non-self intersection
+              vertices.add(
+                  i<top.size() ? top.get(i).copy() : btm.get(btm.size()-1-(i-top.size())).copy()
+              );
+          }
+        }
         
-        ArrayList<PVector> top = new ArrayList();
-        ArrayList<PVector> btm = new ArrayList();
-        for(int i=1; i<guideLine.size(); i++){
-            PVector norm = new PVector(0,0,1).cross(new PVector((guideLine.get(i).x - guideLine.get(i-1).x), (guideLine.get(i).y - guideLine.get(i-1).y))).normalize();
-            float theta = norm.heading();
-            top.add(new PVector(guideLine.get(i).x + stroke_weight*cos(theta), guideLine.get(i).y + stroke_weight*sin(theta)));
-            btm.add(new PVector(guideLine.get(i).x - stroke_weight*cos(theta), guideLine.get(i).y - stroke_weight*sin(theta)));
-        }
-    
-        for(int i=0; i<((top.size() + btm.size())); i++){ // unwrap the top and bottom arrays - first we add all the top points, then start fro the end of hte bottom array to maintain non-self intersection
-            vertices.add(
-                i<top.size() ? top.get(i).copy() : btm.get(btm.size()-1-(i-top.size())).copy()
-            );
-        }
     }
 
     boolean contains(PVector point){

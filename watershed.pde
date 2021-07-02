@@ -85,8 +85,10 @@ void doReset() { //initial setup and used in resetting for high-def export
         line.add(new PVector(map(i, 0, n-1, 0, renderWidth), renderHeight/2 + map(compoundTrigFunction(map(i, 0, n-1, 0, 2*TWO_PI), 0), -3, 4, -50, 50)));
     }
 
-    Ribbon r = new Ribbon(line, renderHighRes ? printDpi/previewDpi * 50 : 50);
+    Ribbon r = new Ribbon(path, renderHighRes ? printDpi/previewDpi * 50 : 50, true);
     render.beginDraw();
+    r.vadenWeb(200, 10, new Gradient(line_palette));
+
 
     float[] t = new float[400];
     float scale = 2;
@@ -97,29 +99,25 @@ void doReset() { //initial setup and used in resetting for high-def export
     float rectSize = renderWidth/sample_size; 
     int numRows=20;
 
-    for(int j=0; j < numRows; j++){
-        int start = int(map(j, 0 , numRows, 0, renderWidth*2/3)); //choose starting point in t for this row
-        ArrayList<PVector> tempLine = new ArrayList();
+    // for(int j=0; j < numRows; j++){
+    //     int start = int(map(j, 0 , numRows, 0, renderWidth*2/3)); //choose starting point in t for this row
+    //     ArrayList<PVector> tempLine = new ArrayList();
 
-        for(int i=0; i<sample_size*2; i++){
-            tempLine.add(new PVector(
-                i*rectSize, 
-                map(j, 0, numRows, renderHeight*0, renderHeight + randomGaussian()*(renderHighRes ? 10*printDpi/previewDpi : 10)) + (renderHighRes ? 10*printDpi/previewDpi : 10)*compoundTrigFunction(t[int((start+i)%t.length)], 0)
-            ));
-        }
+    //     for(int i=0; i<sample_size*2; i++){
+    //         tempLine.add(new PVector(
+    //             i*rectSize, 
+    //             map(j, 0, numRows, renderHeight*0, renderHeight + randomGaussian()*(renderHighRes ? 10*printDpi/previewDpi : 10)) + (renderHighRes ? 10*printDpi/previewDpi : 10)*compoundTrigFunction(t[int((start+i)%t.length)], 0)
+    //         ));
+    //     }
 
-        Ribbon tempRibbon = new Ribbon(tempLine, 20);
-        // tempRibbon.vadenWeb(500, 20, new Gradient(line_palette));
+    //     Ribbon tempRibbon = new Ribbon(tempLine, 20, false);
+    //     tempRibbon.vadenWeb(500, 20, new Gradient(line_palette));
         
-    }
+    // }
     render.stroke(0,0,100, 5);
     canvas_overlay_example1();
-    render.fill(0);
-    render.beginShape();
-    for(PVector p: path){
-        render.vertex(p.x, p.y); //, 10, 10);
-    }
-    render.endShape();
+    // render.fill(0);
+
     // render.endDraw();
 
     // Polygon poly = new Polygon(r.vertices, true);

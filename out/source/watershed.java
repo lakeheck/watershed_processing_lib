@@ -106,8 +106,10 @@ public void doReset() { //initial setup and used in resetting for high-def expor
         line.add(new PVector(map(i, 0, n-1, 0, renderWidth), renderHeight/2 + map(compoundTrigFunction(map(i, 0, n-1, 0, 2*TWO_PI), 0), -3, 4, -50, 50)));
     }
 
-    Ribbon r = new Ribbon(line, renderHighRes ? printDpi/previewDpi * 50 : 50);
+    Ribbon r = new Ribbon(path, renderHighRes ? printDpi/previewDpi * 50 : 50, true);
     render.beginDraw();
+    r.vadenWeb(200, 10, new Gradient(line_palette));
+
 
     float[] t = new float[400];
     float scale = 2;
@@ -118,29 +120,25 @@ public void doReset() { //initial setup and used in resetting for high-def expor
     float rectSize = renderWidth/sample_size; 
     int numRows=20;
 
-    for(int j=0; j < numRows; j++){
-        int start = PApplet.parseInt(map(j, 0 , numRows, 0, renderWidth*2/3)); //choose starting point in t for this row
-        ArrayList<PVector> tempLine = new ArrayList();
+    // for(int j=0; j < numRows; j++){
+    //     int start = int(map(j, 0 , numRows, 0, renderWidth*2/3)); //choose starting point in t for this row
+    //     ArrayList<PVector> tempLine = new ArrayList();
 
-        for(int i=0; i<sample_size*2; i++){
-            tempLine.add(new PVector(
-                i*rectSize, 
-                map(j, 0, numRows, renderHeight*0, renderHeight + randomGaussian()*(renderHighRes ? 10*printDpi/previewDpi : 10)) + (renderHighRes ? 10*printDpi/previewDpi : 10)*compoundTrigFunction(t[PApplet.parseInt((start+i)%t.length)], 0)
-            ));
-        }
+    //     for(int i=0; i<sample_size*2; i++){
+    //         tempLine.add(new PVector(
+    //             i*rectSize, 
+    //             map(j, 0, numRows, renderHeight*0, renderHeight + randomGaussian()*(renderHighRes ? 10*printDpi/previewDpi : 10)) + (renderHighRes ? 10*printDpi/previewDpi : 10)*compoundTrigFunction(t[int((start+i)%t.length)], 0)
+    //         ));
+    //     }
 
-        Ribbon tempRibbon = new Ribbon(tempLine, 20);
-        // tempRibbon.vadenWeb(500, 20, new Gradient(line_palette));
+    //     Ribbon tempRibbon = new Ribbon(tempLine, 20, false);
+    //     tempRibbon.vadenWeb(500, 20, new Gradient(line_palette));
         
-    }
+    // }
     render.stroke(0,0,100, 5);
     canvas_overlay_example1();
-    render.fill(0);
-    render.beginShape();
-    for(PVector p: path){
-        render.vertex(p.x, p.y); //, 10, 10);
-    }
-    render.endShape();
+    // render.fill(0);
+
     // render.endDraw();
 
     // Polygon poly = new Polygon(r.vertices, true);
@@ -926,7 +924,7 @@ class Particle {
   public void displayPath(int path_length, float stroke_weight){
     if(path.size()==path_length){
       render.fill(0,20);
-      Ribbon r = new Ribbon(path, stroke_weight);
+      Ribbon r = new Ribbon(path, stroke_weight, false);
       r.display();
     } 
   }
@@ -1622,7 +1620,7 @@ public float compoundTrigFunction(float x, int choice){ //allows compounding of 
     float coeff1 = 3; //random(2,5);
     float coeff2 = 4; //random(2,5);
     float coeff3 = 5; //random(2,6);
-    float coeff4 = 4;// random(4,5);
+    float coeff4 = 4;// (4,5);
     switch(choice){
       case 0: return cos(x*coeff1+coeff2) - coeff3*sin(randomGaussian()*0.01f + x) + cos(coeff4*x)*pow(sin(pow(x,2)), 2);
       default: return sin(x) + coeff3 * cos(random(2,4)*x);
@@ -1633,24 +1631,30 @@ public float compoundTrigFunction(float x, int choice){ //allows compounding of 
 class Ribbon{ //class for drawing a ribbon based on a guide line (as used in flow fields, etc)
     ArrayList<PVector> vertices;
 
-    Ribbon(ArrayList<PVector> guideLine, float stroke_weight){ //should be initialized with ordered set of points 
+    Ribbon(ArrayList<PVector> guideLine, float stroke_weight, boolean closed){ //should be initialized with ordered set of points 
+        // closed bool value set to false if the input line is an open loop (and must be "expanded" into a region)
+        //close bool should be set to true if the input list of points forms a closed loop
         vertices = new ArrayList();
-
+        if(closed){
+          vertices.addAll(guideLine);
+        }
+        else{
+          ArrayList<PVector> top = new ArrayList();
+          ArrayList<PVector> btm = new ArrayList();
+          for(int i=1; i<guideLine.size(); i++){
+              PVector norm = new PVector(0,0,1).cross(new PVector((guideLine.get(i).x - guideLine.get(i-1).x), (guideLine.get(i).y - guideLine.get(i-1).y))).normalize();
+              float theta = norm.heading();
+              top.add(new PVector(guideLine.get(i).x + stroke_weight*cos(theta), guideLine.get(i).y + stroke_weight*sin(theta)));
+              btm.add(new PVector(guideLine.get(i).x - stroke_weight*cos(theta), guideLine.get(i).y - stroke_weight*sin(theta)));
+          }
+      
+          for(int i=0; i<((top.size() + btm.size())); i++){ // unwrap the top and bottom arrays - first we add all the top points, then start fro the end of hte bottom array to maintain non-self intersection
+              vertices.add(
+                  i<top.size() ? top.get(i).copy() : btm.get(btm.size()-1-(i-top.size())).copy()
+              );
+          }
+        }
         
-        ArrayList<PVector> top = new ArrayList();
-        ArrayList<PVector> btm = new ArrayList();
-        for(int i=1; i<guideLine.size(); i++){
-            PVector norm = new PVector(0,0,1).cross(new PVector((guideLine.get(i).x - guideLine.get(i-1).x), (guideLine.get(i).y - guideLine.get(i-1).y))).normalize();
-            float theta = norm.heading();
-            top.add(new PVector(guideLine.get(i).x + stroke_weight*cos(theta), guideLine.get(i).y + stroke_weight*sin(theta)));
-            btm.add(new PVector(guideLine.get(i).x - stroke_weight*cos(theta), guideLine.get(i).y - stroke_weight*sin(theta)));
-        }
-    
-        for(int i=0; i<((top.size() + btm.size())); i++){ // unwrap the top and bottom arrays - first we add all the top points, then start fro the end of hte bottom array to maintain non-self intersection
-            vertices.add(
-                i<top.size() ? top.get(i).copy() : btm.get(btm.size()-1-(i-top.size())).copy()
-            );
-        }
     }
 
     public boolean contains(PVector point){

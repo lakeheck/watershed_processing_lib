@@ -52,6 +52,17 @@ void setup(){
     doReset();
 }
 
+ArrayList<PVector> inkscapePathImport(float[][] p, float inputWidth, float inputHeight){
+    ArrayList<PVector> out = new ArrayList();
+    for(int i=0; i<p.length; i++){
+        // println(p[i][0][0]);
+        float x = map(p[i][0], 0, inputWidth, 0, renderWidth);
+        float y = map(p[i][1], 0, inputHeight, 0 ,renderHeight);
+        out.add(new PVector(x, y));
+    }
+    return out;
+}
+
 
 void doReset() { //initial setup and used in resetting for high-def export
 
@@ -66,7 +77,8 @@ void doReset() { //initial setup and used in resetting for high-def export
     background_palette = new int[]{color(#0f0f0e), color(#382a04), color(#141524), color(#170d1f), color(#000000)};
     line_palette = new int[]{color(#382a04), color(#594a1f), color(#073610), color(#18361e), color(#243618), color(#313622), color(#473216)};
 
-
+    ArrayList<PVector> path = inkscapePathImport(p, 3564.00000, 5014.66650);
+    // printArray(path);
     line = new ArrayList(); //generate a random line 
     int n = 50;
     for(int i=0; i<50; i++){
@@ -75,8 +87,6 @@ void doReset() { //initial setup and used in resetting for high-def export
 
     Ribbon r = new Ribbon(line, renderHighRes ? printDpi/previewDpi * 50 : 50);
     render.beginDraw();
-
-
 
     float[] t = new float[400];
     float scale = 2;
@@ -99,13 +109,17 @@ void doReset() { //initial setup and used in resetting for high-def export
         }
 
         Ribbon tempRibbon = new Ribbon(tempLine, 20);
-        tempRibbon.vadenWeb(500, 20, new Gradient(line_palette));
+        // tempRibbon.vadenWeb(500, 20, new Gradient(line_palette));
         
     }
     render.stroke(0,0,100, 5);
     canvas_overlay_example1();
-
-    
+    render.fill(0);
+    render.beginShape();
+    for(PVector p: path){
+        render.vertex(p.x, p.y); //, 10, 10);
+    }
+    render.endShape();
     // render.endDraw();
 
     // Polygon poly = new Polygon(r.vertices, true);

@@ -77,7 +77,20 @@ void doReset() { //initial setup and used in resetting for high-def export
     background_palette = new int[]{color(#0f0f0e), color(#382a04), color(#141524), color(#170d1f), color(#000000)};
     line_palette = new int[]{color(#382a04), color(#594a1f), color(#073610), color(#18361e), color(#243618), color(#313622), color(#473216)};
 
-    ArrayList<PVector> path = inkscapePathImport(p, 3564.00000, 5014.66650);
+    float[][][] import_paths = new float[][][]{
+        branch5, branch4, branch3, branch2, branch1, arm0, arm1, arm3, arm4, arm5, arm6, arm7, arm8
+    };
+
+    
+    ArrayList<ArrayList<PVector>> paths = new ArrayList<ArrayList<PVector>>(); 
+    for(float[][] p:import_paths){
+        paths.add(inkscapePathImport(p, 3564.00000, 5014.66650));
+    }
+    render.beginDraw();
+    for(ArrayList<PVector> path:paths){
+        Ribbon r = new Ribbon(path, renderHighRes ? printDpi/previewDpi * 50 : 50, true);
+        r.vadenWeb(200, 10, new Gradient(line_palette));
+    }
     // printArray(path);
     line = new ArrayList(); //generate a random line 
     int n = 50;
@@ -85,9 +98,9 @@ void doReset() { //initial setup and used in resetting for high-def export
         line.add(new PVector(map(i, 0, n-1, 0, renderWidth), renderHeight/2 + map(compoundTrigFunction(map(i, 0, n-1, 0, 2*TWO_PI), 0), -3, 4, -50, 50)));
     }
 
-    Ribbon r = new Ribbon(path, renderHighRes ? printDpi/previewDpi * 50 : 50, true);
-    render.beginDraw();
-    r.vadenWeb(200, 10, new Gradient(line_palette));
+    // Ribbon r = new Ribbon(path, renderHighRes ? printDpi/previewDpi * 50 : 50, true);
+    // render.beginDraw();
+    // r.vadenWeb(200, 10, new Gradient(line_palette));
 
 
     float[] t = new float[400];

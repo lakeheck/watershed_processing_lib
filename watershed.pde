@@ -86,12 +86,19 @@ void doReset() { //initial setup and used in resetting for high-def export
         paths.add(inkscapePathImport(p, 3564.00000, 5014.66650));
     }
     render.beginDraw();
-    render.background(255);
-    for(int i=0; i<paths.size(); i++){
-        Ribbon r = new Ribbon(paths.get(i), renderHighRes ? printDpi/previewDpi * 50 : 50, true);
-        r.vadenWeb(300, 10, new Gradient(line_palette), i<=4 ? true : false );
-    }
+    // render.background(255);
+    // for(int i=0; i<paths.size(); i++){
+    //     Ribbon r = new Ribbon(paths.get(i), renderHighRes ? printDpi/previewDpi * 50 : 50, true);
+    //     r.vadenWeb(300, 10, new Gradient(line_palette), i<=4 ? true : false );
+    // }
+    Ribbon r = new Ribbon(paths.get(7), renderHighRes ? printDpi/previewDpi * 50 : 50, true);
     
+    Polygon p = new Polygon(paths.get(7), true);
+    p.subdivide();
+    p.geometricSubdivision.display();
+
+    // r.vadenWeb(300, 10, new Gradient(line_palette), false );
+
     render.endDraw();
 
     // as = new AttractorSystem(5);
@@ -112,23 +119,23 @@ void draw(){
 
     //ANY LOGIC USED TO DRAW GOES HERE
     // as.calculateAttractorSystem();
-    float[][][] import_paths = new float[][][]{
-        branch5, branch4, branch3, branch2, branch1, arm0, arm1, arm3, arm4, arm5, arm6, arm7, arm8
-    };
+    // float[][][] import_paths = new float[][][]{
+    //     branch5, branch4, branch3, branch2, branch1, arm0, arm1, arm3, arm4, arm5, arm6, arm7, arm8
+    // };
 
     
-    ArrayList<ArrayList<PVector>> paths = new ArrayList<ArrayList<PVector>>(); 
-    for(float[][] p:import_paths){
-        paths.add(inkscapePathImport(p, 3564.00000, 5014.66650));
-    }
-    render.beginDraw();
-    render.background(255);
-    for(int i=0; i<paths.size(); i++){
-        Ribbon r = new Ribbon(paths.get(i), renderHighRes ? printDpi/previewDpi * 50 : 50, true);
-        r.vadenWeb(300, 10, new Gradient(line_palette), i<=4 ? true : false );
-        // render.noFill();
-        // r.display();
-    }
+    // ArrayList<ArrayList<PVector>> paths = new ArrayList<ArrayList<PVector>>(); 
+    // for(float[][] p:import_paths){
+    //     paths.add(inkscapePathImport(p, 3564.00000, 5014.66650));
+    // }
+    // render.beginDraw();
+    // render.background(255);
+    // for(int i=0; i<paths.size(); i++){
+    //     Ribbon r = new Ribbon(paths.get(i), renderHighRes ? printDpi/previewDpi * 50 : 50, true);
+    //     r.vadenWeb(300, 10, new Gradient(line_palette), i<=4 ? true : false );
+    //     // render.noFill();
+    //     // r.display();
+    // }
     render.endDraw(); //some settings to display the render object on screen
     int outWidth, outHeight;
     

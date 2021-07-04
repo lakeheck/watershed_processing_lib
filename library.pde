@@ -54,6 +54,38 @@ boolean polyPoint(ArrayList<PVector> vertices, float px, float py) {
   return collision;
 }
 
+boolean polyLine(ArrayList<PVector> vertices, float x1, float y1, float x2, float y2) {
+
+  // go through each of the vertices, plus the next
+  // vertex in the list
+  int next = 0;
+  for (int current=0; current<vertices.size(); current++) {
+
+    // get next vertex in list
+    // if we've hit the end, wrap around to 0
+    next = current+1;
+    if (next == vertices.size()) next = 0;
+
+    // get the PVectors at our current position
+    // extract X/Y coordinates from each
+    float x3 = vertices.get(current).x;
+    float y3 = vertices.get(current).y;
+    float x4 = vertices.get(next).x;
+    float y4 = vertices.get(next).y;
+
+    // do a Line/Line comparison
+    // if true, return 'true' immediately and
+    // stop testing (faster)
+    boolean hit = lineLine(x1, y1, x2, y2, x3, y3, x4, y4);
+    if (hit) {
+      return true;
+    }
+  }
+
+  // never got a hit
+  return false;
+}
+
 /************************** EASING FUNCTIONS ********************************/
 
 float sigmoidEasing(float x){
@@ -1480,15 +1512,22 @@ class Ribbon{ //class for drawing a ribbon based on a guide line (as used in flo
         render.endShape(CLOSE);
     }
 
-    void vadenWeb(int n, int _knn, Gradient grad){
+    void vadenWeb(int n, int _knn, Gradient grad, boolean allow_intersection){
       ArrayList<PVector> points = this.generatePointsInside(n);
         Gradient lineGrad = grad;
         for(PVector p:points){
             ArrayList<PVector> knn = k_nearest_neighbors(p, points, _knn);
             for(PVector k:knn){
-                    int baseColor = lineGrad.eval(map(k.x,0,renderWidth,0,1)+randomGaussian()*0.1, HSB);
-                    render.stroke(hue(baseColor) + randomGaussian(), saturation(baseColor) + randomGaussian()*8, brightness(baseColor) + randomGaussian()*8);
-                    render.line(p.x, p.y, k.x, k.y);
+              // int baseColor = lineGrad.eval(map(k.x,0,renderWidth,0,1)+randomGaussian()*0.1, HSB);
+              // render.stroke(hue(baseColor) + randomGaussian(), saturation(baseColor) + randomGaussian()*8, brightness(baseColor) + randomGaussian()*8);
+              if(allow_intersection){
+                render.stroke(0);
+                render.line(p.x, p.y, k.x, k.y);
+              }
+              else if(!polyLine(this.vertices, p.x, p.y, k.x, k.y) || polyLine(inkscapePathImport(hole_in_arm_8, 3564.00000, 5014.66650), p.x, p.y, k.x, k.y)){
+                render.stroke(0);
+                render.line(p.x, p.y, k.x, k.y);
+              }
             }
       }
     }
@@ -1753,11 +1792,22 @@ class Polygon{
 
     Face f = edges.get(idx); //start with longest face
     PVector np1 = f.getRandomPoint(this.pct, this.std);
-
-    int new_idx = int(random(edges.size()-1)); //choose another face randomly (could be improved with some better logic for eligible / preffered faces)
-    new_idx = (new_idx>= idx) ? new_idx+1 : new_idx;
-    PVector np2 = edges.get(new_idx).getRandomPoint(this.pct, this.std);//select point from new face
-
+    PVector np2 = new PVector();
+    boolean goodEdge = false;
+    int count=0;
+    while(!goodEdge && count < 10000){
+      int new_idx = int(random(edges.size()-1)); //choose another face randomly (could be improved with some better logic for eligible / preffered faces)
+      new_idx = (new_idx>= idx) ? new_idx+1 : new_idx;
+      np2 = edges.get(new_idx).getRandomPoint(this.pct, this.std);//select point from new face
+      if(!polyLine(this.hull,np1.x, np1.y, np2.x, np2.y)){
+        goodEdge = true;
+      }
+      else{
+        // println(count);
+      }
+      count++;
+    }
+    // println("esc");
     FrameLine subdivisionEdge = new FrameLine(np1.x, np1.y, np2.x, np2.y);
     edges.add(subdivisionEdge); 
     int firstPointIndex = int(random(hull.size())); //first pick random point on the Polygon

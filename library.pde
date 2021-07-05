@@ -751,7 +751,7 @@ class Particle {
   void displayPath(int path_length, float stroke_weight){
     if(path.size()==path_length){
       render.fill(0,20);
-      Ribbon r = new Ribbon(path, stroke_weight, false);
+      Region r = new Region(path, stroke_weight, false);
       r.display();
     } 
   }
@@ -1455,10 +1455,10 @@ float compoundTrigFunction(float x, int choice){ //allows compounding of trig fu
 }
 
 
-class Ribbon{ //class for drawing a ribbon based on a guide line (as used in flow fields, etc)
+class Region{ //class for drawing a Region based on a guide line (as used in flow fields, etc)
     ArrayList<PVector> vertices;
 
-    Ribbon(ArrayList<PVector> guideLine, float stroke_weight, boolean closed){ //should be initialized with ordered set of points 
+    Region(ArrayList<PVector> guideLine, float stroke_weight, boolean closed){ //should be initialized with ordered set of points 
         // closed bool value set to false if the input line is an open loop (and must be "expanded" into a region)
         //close bool should be set to true if the input list of points forms a closed loop
         vertices = new ArrayList();
@@ -1466,6 +1466,13 @@ class Ribbon{ //class for drawing a ribbon based on a guide line (as used in flo
           vertices.addAll(guideLine);
         }
         else{
+          vertices.addAll(generateBoundsfromFrameLine(guideLine, stroke_weight));
+        }
+        
+    }
+
+    ArrayList<PVector> generateBoundsfromFrameLine(ArrayList<PVector> guideLine, float stroke_weight){
+          ArrayList<PVector> out = new ArrayList();
           ArrayList<PVector> top = new ArrayList();
           ArrayList<PVector> btm = new ArrayList();
           for(int i=1; i<guideLine.size(); i++){
@@ -1474,14 +1481,12 @@ class Ribbon{ //class for drawing a ribbon based on a guide line (as used in flo
               top.add(new PVector(guideLine.get(i).x + stroke_weight*cos(theta), guideLine.get(i).y + stroke_weight*sin(theta)));
               btm.add(new PVector(guideLine.get(i).x - stroke_weight*cos(theta), guideLine.get(i).y - stroke_weight*sin(theta)));
           }
-      
           for(int i=0; i<((top.size() + btm.size())); i++){ // unwrap the top and bottom arrays - first we add all the top points, then start fro the end of hte bottom array to maintain non-self intersection
-              vertices.add(
+              out.add(
                   i<top.size() ? top.get(i).copy() : btm.get(btm.size()-1-(i-top.size())).copy()
               );
           }
-        }
-        
+          return out;
     }
 
     boolean contains(PVector point){
@@ -1493,11 +1498,49 @@ class Ribbon{ //class for drawing a ribbon based on a guide line (as used in flo
         int count = 0;
         while(count <= n){
             PVector p = new PVector(random(renderWidth), random(renderHeight));
+            // println(inkscapeRecoverInitialValue(p, img));
             if(polyPoint(this.vertices, p.x, p.y)){
                 points.add(p);
                 count++;
             }
         }
+        return points;
+    }
+
+    float regionArea(){
+        float area = 0.0;
+        int n = vertices.size();
+        // Calculate value of shoelace formula
+        int j = n - 1;
+        for (int i = 0; i < n; i++){
+          area += (vertices.get(j).x + vertices.get(i).x) * (vertices.get(j).y - vertices.get(i).y);
+            
+          // j is previous vertex to i
+          j = i;
+        }
+        return Math.abs(area / 2.0);
+
+    }
+
+    ArrayList<PVector> generatePointsInside(ArrayList<PVector> region, int n){
+        ArrayList<PVector> points = new ArrayList();
+        int count = 0;
+        while(count <= n){
+            PVector p = new PVector(random(renderWidth), random(renderHeight));
+            // println(inkscapeRecoverInitialValue(p, img));
+            if(polyPoint(region, p.x, p.y)){
+                points.add(p);
+                count++;
+            }
+        }
+        return points;
+    }
+
+    ArrayList<PVector> generate_N_points_about_curve(ArrayList<PVector> line, int n, float var){
+        ArrayList<PVector> points = new ArrayList();
+        int count = 0;
+        ArrayList<PVector> region = generateBoundsfromFrameLine(line, 20);
+        points.addAll(this.generatePointsInside(region, n));
         return points;
     }
 
@@ -1855,7 +1898,7 @@ class Polygon{
   }
 
   float polygonArea(){
-    area = 0.0;
+    float area = 0.0;
     int n = hull.size();
     // Calculate value of shoelace formula
     int j = n - 1;

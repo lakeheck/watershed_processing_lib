@@ -86,16 +86,16 @@ void doReset() { //initial setup and used in resetting for high-def export
         paths.add(inkscapePathImport(p, 3564.00000, 5014.66650));
     }
     render.beginDraw();
-    // render.background(255);
-    // for(int i=0; i<paths.size(); i++){
-    //     Ribbon r = new Ribbon(paths.get(i), renderHighRes ? printDpi/previewDpi * 50 : 50, true);
-    //     r.vadenWeb(300, 10, new Gradient(line_palette), i<=4 ? true : false );
-    // }
-    Ribbon r = new Ribbon(paths.get(7), renderHighRes ? printDpi/previewDpi * 50 : 50, true);
+    render.background(255);
+    for(int i=0; i<paths.size(); i++){
+        Region r = new Region(paths.get(i), renderHighRes ? printDpi/previewDpi * 50 : 50, true);
+        r.vadenWeb(300, 10, new Gradient(line_palette), i<=4 ? true : false );
+    }
+    // Region r = new Region(paths.get(7), renderHighRes ? printDpi/previewDpi * 50 : 50, true);
     
-    Polygon p = new Polygon(paths.get(7), true);
-    p.subdivide();
-    p.geometricSubdivision.display();
+    // Polygon p = new Polygon(paths.get(7), true);
+    // p.subdivide();
+    // p.geometricSubdivision.display();
 
     // r.vadenWeb(300, 10, new Gradient(line_palette), false );
 
@@ -131,7 +131,7 @@ void draw(){
     // render.beginDraw();
     // render.background(255);
     // for(int i=0; i<paths.size(); i++){
-    //     Ribbon r = new Ribbon(paths.get(i), renderHighRes ? printDpi/previewDpi * 50 : 50, true);
+    //     Region r = new Region(paths.get(i), renderHighRes ? printDpi/previewDpi * 50 : 50, true);
     //     r.vadenWeb(300, 10, new Gradient(line_palette), i<=4 ? true : false );
     //     // render.noFill();
     //     // r.display();

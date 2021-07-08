@@ -78,29 +78,44 @@ void doReset() { //initial setup and used in resetting for high-def export
     line_palette = new int[]{color(#382a04), color(#594a1f), color(#073610), color(#18361e), color(#243618), color(#313622), color(#473216)};
 
     float[][][] import_paths = new float[][][]{
-        branch5, branch4, branch3, branch2, branch1, arm0, arm1, arm3, arm4, arm5, arm6, arm7, arm8
+        branch5, branch4, branch3, branch2, branch1, arm0, arm1_1, arm1_2, arm1_3, arm3, arm4_1, arm4_2, arm4_3, arm4_4, arm5, arm6, arm7, arm8
     };
 
+    float[][][] import_paths_highlight = new float[][][]{
+        branch5_highlight, branch4_highlight, branch3_highlight, branch2_highlight, branch1_highlight, arm0_highlight, arm1_1_highlight, arm1_2_highlight, arm1_3_highlight, arm3_highlight, arm4_1_highlight, arm4_2_highlight, arm4_3_highlight, arm4_4_highlight, arm5_highlight, arm6_highlight, arm7_highlight, arm8_highlight
+    };
     ArrayList<ArrayList<PVector>> paths = new ArrayList<ArrayList<PVector>>(); 
+    ArrayList<ArrayList<PVector>> highlight_paths = new ArrayList<ArrayList<PVector>>(); 
+
     for(float[][] p:import_paths){
         paths.add(inkscapePathImport(p, 3564.00000, 5014.66650));
     }
+    for(float[][] p:import_paths_highlight){
+        highlight_paths.add(inkscapePathImport(p, 3564.00000, 5014.66650));
+    }
+
     render.beginDraw();
     render.background(255);
     for(int i=0; i<paths.size(); i++){
+        ArrayList<PVector> tempPoints = new ArrayList();
         Region r = new Region(paths.get(i), renderHighRes ? printDpi/previewDpi * 50 : 50, true);
-        r.vadenWeb(300, 10, new Gradient(line_palette), i<=4 ? true : false );
+        if(highlight_paths.get(i).size() > 0){
+            Region rh = new Region(highlight_paths.get(i), renderHighRes ? printDpi/previewDpi * (randomGaussian()+7) : randomGaussian()+7, false); //created highlight paths to add
+            tempPoints = rh.generatePointsInside(150);
+        }
+        r.vadenWeb(300, 10, new Gradient(line_palette), i<=4 ? true : false, tempPoints);
     }
+
+    // Region rh = new Region(highlight_paths.get(0), renderHighRes ? printDpi/previewDpi * 10 : 10, false);
     // Region r = new Region(paths.get(7), renderHighRes ? printDpi/previewDpi * 50 : 50, true);
     
     // Polygon p = new Polygon(paths.get(7), true);
     // p.subdivide();
     // p.geometricSubdivision.display();
 
-    // r.vadenWeb(300, 10, new Gradient(line_palette), false );
+    // rh.vadenWeb(300, 10, new Gradient(line_palette), false);
 
     render.endDraw();
-
     // as = new AttractorSystem(5);
     // as.addPerlinFlowField(0.005, 4, 0.5, true);
     // as.addPerlinFlowField(0.01, 8, 0.9, false);

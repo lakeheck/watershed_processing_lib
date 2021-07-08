@@ -832,6 +832,10 @@ void keyPressed() {
     case 's':
       render.save(saveFilePath + "-" + "SEED-" + str(seed) + ".png");
       break;
+
+    case 'S':
+      render.save(saveFilePath + "-" + "SEED-" + str(seed) + ".png");
+      break;
       
     case 'r':
       seed = (int)System.currentTimeMillis();
@@ -1558,6 +1562,27 @@ class Region{ //class for drawing a Region based on a guide line (as used in flo
     void vadenWeb(int n, int _knn, Gradient grad, boolean allow_intersection){
       ArrayList<PVector> points = this.generatePointsInside(n);
         Gradient lineGrad = grad;
+        for(PVector p:points){
+            ArrayList<PVector> knn = k_nearest_neighbors(p, points, _knn);
+            for(PVector k:knn){
+              // int baseColor = lineGrad.eval(map(k.x,0,renderWidth,0,1)+randomGaussian()*0.1, HSB);
+              // render.stroke(hue(baseColor) + randomGaussian(), saturation(baseColor) + randomGaussian()*8, brightness(baseColor) + randomGaussian()*8);
+              if(allow_intersection){
+                render.stroke(0);
+                render.line(p.x, p.y, k.x, k.y);
+              }
+              else if(!polyLine(this.vertices, p.x, p.y, k.x, k.y) || polyLine(inkscapePathImport(hole_in_arm_8, 3564.00000, 5014.66650), p.x, p.y, k.x, k.y)){
+                render.stroke(0);
+                render.line(p.x, p.y, k.x, k.y);
+              }
+            }
+      }
+    }
+
+    void vadenWeb(int n, int _knn, Gradient grad, boolean allow_intersection, ArrayList<PVector> addl_points){
+      ArrayList<PVector> points = this.generatePointsInside(n);
+      points.addAll(addl_points);
+      Gradient lineGrad = grad;
         for(PVector p:points){
             ArrayList<PVector> knn = k_nearest_neighbors(p, points, _knn);
             for(PVector k:knn){

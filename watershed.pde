@@ -99,45 +99,14 @@ void doReset() { //initial setup and used in resetting for high-def export
     float rectSize = renderWidth/sample_size; 
     int numRows=20;
 
-    // for(int j=0; j < numRows; j++){
-    //     int start = int(map(j, 0 , numRows, 0, renderWidth*2/3)); //choose starting point in t for this row
-    //     ArrayList<PVector> tempLine = new ArrayList();
 
-    //     for(int i=0; i<sample_size*2; i++){
-    //         tempLine.add(new PVector(
-    //             i*rectSize, 
-    //             map(j, 0, numRows, renderHeight*0, renderHeight + randomGaussian()*(renderHighRes ? 10*printDpi/previewDpi : 10)) + (renderHighRes ? 10*printDpi/previewDpi : 10)*compoundTrigFunction(t[int((start+i)%t.length)], 0)
-    //         ));
-    //     }
-
-    //     Ribbon tempRibbon = new Ribbon(tempLine, 20, false);
-    //     tempRibbon.vadenWeb(500, 20, new Gradient(line_palette));
-        
-    // }
     render.stroke(0,0,100, 5);
     canvas_overlay_example1();
-    // render.fill(0);
-
-    // render.endDraw();
-
-    // Polygon poly = new Polygon(r.vertices, true);
-    // poly.subdivide();
-
-
-    // render.beginDraw();
-    // render.background(255);
-    // poly.geometricSubdivision.display();
-
-
-    // r.noFill();
-    // r.display();
 
     
     render.endDraw();
 
-    // as = new AttractorSystem(5);
-    // as.addPerlinFlowField(0.005, 4, 0.5, true);
-    // as.addPerlinFlowField(0.01, 8, 0.9, false);
+
 
 
 }
@@ -152,7 +121,6 @@ void draw(){
     }
 
     //ANY LOGIC USED TO DRAW GOES HERE
-    // as.calculateAttractorSystem();
     render.endDraw(); //some settings to display the render object on screen
     int outWidth, outHeight;
     

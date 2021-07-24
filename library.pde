@@ -795,36 +795,36 @@ class Particle {
 
 // }
 
-void keyPressed() {
-  switch (key) {
-    case 's':
-      render.save(saveFilePath + "-" + "SEED-" + str(seed) + ".png");
-      break;
+// void keyPressed() {
+//   switch (key) {
+//     case 's':
+//       render.save(saveFilePath + "-" + "SEED-" + str(seed) + ".png");
+//       break;
       
-    case 'r':
-      seed = (int)System.currentTimeMillis();
-      renderHighRes = false;
-      doReset();
-      break;
+//     case 'r':
+//       seed = (int)System.currentTimeMillis();
+//       renderHighRes = false;
+//       doReset();
+//       break;
 
-    case 'R':
-      seed = (int)System.currentTimeMillis();
-      renderHighRes = true;
-      doReset();
-      break;
+//     case 'R':
+//       seed = (int)System.currentTimeMillis();
+//       renderHighRes = true;
+//       doReset();
+//       break;
       
-    case 'h':
-      renderHighRes = true;
-      doReset();
-      break;
+//     case 'h':
+//       renderHighRes = true;
+//       doReset();
+//       break;
 
-    case 'H':
-      renderHighRes = true;
-      doReset();
-      break;
+//     case 'H':
+//       renderHighRes = true;
+//       doReset();
+//       break;
       
-  }
-}
+//   }
+// }
 
 /* ********************** CHAIKIN CURVE FUNCTIONS **************************** */
 

@@ -7,6 +7,7 @@ import java.util.Collections;
 import java.util.Arrays; 
 import java.util.Comparator; 
 import megamu.mesh.*; 
+import processing.pdf.*; 
 
 import java.util.HashMap; 
 import java.util.ArrayList; 
@@ -18,6 +19,7 @@ import java.io.OutputStream;
 import java.io.IOException; 
 
 public class watershed extends PApplet {
+
 
 
 
@@ -65,13 +67,45 @@ PVector[][] noiseGrid; //set up a noise based flow field for changing tile attri
 Gradient colorGrad;
 Polygon poly;
 
+PShader shader;
 
 public void setup(){
-    
+    // size(750, 750, P3D);
     background(255);
     colorMode(HSB, 360, 100, 100, 100);
-    doReset();
+    
+    noStroke();
+
+    shader = loadShader("distance_field.frag");
+    // doReset();
+    saveHighRes();
 }
+public void savePDF() {
+  println("Saving PDF image...");
+  beginRecord(PDF,  "-vector.pdf");
+  seededRender();
+  endRecord();
+  println("Finished");
+}
+
+public void seededRender() {
+  randomSeed(seed);
+  noiseSeed(seed);
+  render();
+}
+
+public void render() {
+  /* Do your drawing in here */
+    shader.set("u_resolution", PApplet.parseFloat(width), PApplet.parseFloat(height));
+    shader.set("u_mouse", PApplet.parseFloat(mouseX), PApplet.parseFloat(mouseY));
+    shader.set("u_time", millis() / 1000.0f);
+    // shader(shader);
+    rect(0,0,width,height);
+    //   if(frameCount==1) 
+    save(saveFilePath + "-1.png");
+//   if(int(millis()/1000.0) ==15) save(saveFilePath + "-15.png");
+}
+
 
 public ArrayList<PVector> inkscapePathImport(float[][] p, float inputWidth, float inputHeight){
     ArrayList<PVector> out = new ArrayList();
@@ -85,110 +119,15 @@ public ArrayList<PVector> inkscapePathImport(float[][] p, float inputWidth, floa
 }
 
 
-public void doReset() { //initial setup and used in resetting for high-def export
-
-    int dpi = renderHighRes ? printDpi : previewDpi;
-    scaleFactor = dpi / (float)previewDpi;
-    renderWidth = printWidth * dpi;
-    renderHeight = printHeight * dpi;
-    render = createGraphics(renderWidth, renderHeight);
-    firstFrame = true;
-    noiseSeed(seed);
-    randomSeed(seed);
-    background_palette = new int[]{color(0xff0f0f0e), color(0xff382a04), color(0xff141524), color(0xff170d1f), color(0xff000000)};
-    line_palette = new int[]{color(0xff382a04), color(0xff594a1f), color(0xff073610), color(0xff18361e), color(0xff243618), color(0xff313622), color(0xff473216)};
-
-    ArrayList<PVector> path = inkscapePathImport(p, 3564.00000f, 5014.66650f);
-    // printArray(path);
-    line = new ArrayList(); //generate a random line 
-    int n = 50;
-    for(int i=0; i<50; i++){
-        line.add(new PVector(map(i, 0, n-1, 0, renderWidth), renderHeight/2 + map(compoundTrigFunction(map(i, 0, n-1, 0, 2*TWO_PI), 0), -3, 4, -50, 50)));
-    }
-
-    Ribbon r = new Ribbon(path, renderHighRes ? printDpi/previewDpi * 50 : 50, true);
-    render.beginDraw();
-    r.vadenWeb(200, 10, new Gradient(line_palette));
-
-
-    float[] t = new float[400];
-    float scale = 2;
-    for(int i=0; i<t.length; i++){
-        t[i] = map(i, 0, t.length, -scale*TWO_PI, scale*TWO_PI);
-    }
-    int sample_size = PApplet.parseInt(t.length*0.5f);
-    float rectSize = renderWidth/sample_size; 
-    int numRows=20;
-
-    // for(int j=0; j < numRows; j++){
-    //     int start = int(map(j, 0 , numRows, 0, renderWidth*2/3)); //choose starting point in t for this row
-    //     ArrayList<PVector> tempLine = new ArrayList();
-
-    //     for(int i=0; i<sample_size*2; i++){
-    //         tempLine.add(new PVector(
-    //             i*rectSize, 
-    //             map(j, 0, numRows, renderHeight*0, renderHeight + randomGaussian()*(renderHighRes ? 10*printDpi/previewDpi : 10)) + (renderHighRes ? 10*printDpi/previewDpi : 10)*compoundTrigFunction(t[int((start+i)%t.length)], 0)
-    //         ));
-    //     }
-
-    //     Ribbon tempRibbon = new Ribbon(tempLine, 20, false);
-    //     tempRibbon.vadenWeb(500, 20, new Gradient(line_palette));
-        
-    // }
-    render.stroke(0,0,100, 5);
-    canvas_overlay_example1();
-    // render.fill(0);
-
-    // render.endDraw();
-
-    // Polygon poly = new Polygon(r.vertices, true);
-    // poly.subdivide();
-
-
-    // render.beginDraw();
-    // render.background(255);
-    // poly.geometricSubdivision.display();
-
-
-    // r.noFill();
-    // r.display();
-
-    
-    render.endDraw();
-
-    // as = new AttractorSystem(5);
-    // as.addPerlinFlowField(0.005, 4, 0.5, true);
-    // as.addPerlinFlowField(0.01, 8, 0.9, false);
-
-
-}
-
 
 public void draw(){
-    render.beginDraw();
-    if(firstFrame){
-        firstFrame = false;
-        render.colorMode(HSB, 360,100,100,100);
-        render.fill(0);
-    }
+}
 
-    //ANY LOGIC USED TO DRAW GOES HERE
-    // as.calculateAttractorSystem();
-    render.endDraw(); //some settings to display the render object on screen
-    int outWidth, outHeight;
-    
-    float ratio = renderWidth / (float)renderHeight;
-    if (ratio > 1) {
-        outWidth = width;
-        outHeight = (int)(outWidth / ratio);
-    } else {
-        outHeight = height;
-        outWidth = (int)(outHeight * ratio);
+public void keyPressed(){
+    switch(key){
+        case 's': saveHighRes();
+        break;
     }
-    
-    background(192);
-    image(render, (width-outWidth)/2, (height - outHeight) / 2, outWidth, outHeight);
-
 }
 
 
@@ -202,6 +141,51 @@ public int lerpColor(int[] arr, float step, int colorMode) {
   float scl = step * (sz - 1);
   int i = PApplet.parseInt(scl);
   return lerpColor(arr[i], arr[i + 1], scl - i, colorMode);
+}
+
+public void saveHighRes() {
+int dpi = printDpi;
+scaleFactor = dpi / (float)previewDpi;
+  PGraphics hires = createGraphics(
+                        PApplet.parseInt(width * scaleFactor),
+                        PApplet.parseInt(height * scaleFactor),
+                        P3D);
+  println("Generating high-resolution image...");
+  shader.set("u_resolution", PApplet.parseFloat(hires.width), PApplet.parseFloat(hires.height));
+    // shader.set("u_mouse", float(mouseX), float(mouseY));
+  shader.set("u_time", millis() / 1000.0f);
+  hires.beginDraw();
+  hires.background(255);
+  hires.stroke(0);
+  hires.line(0,0,588,588);
+  hires.noStroke();
+//   hires.scale(scaleFactor);
+  hires.filter(shader);
+  hires.endDraw();
+
+  hires.save(seed + "-highres.png");
+  println("Finished");
+}
+
+public void doReset() { //initial setup and used in resetting for high-def export
+    int dpi = renderHighRes ? printDpi : previewDpi;
+    scaleFactor = dpi / (float)previewDpi;
+    renderWidth = printWidth * dpi;
+    renderHeight = printHeight * dpi;
+    render = createGraphics(renderWidth, renderHeight);
+    shader=loadShader("distance_field.glsl");
+    // shader.set("fraction", 1.0);
+    firstFrame = true;
+    noiseSeed(seed);
+    randomSeed(seed);
+    background_palette = new int[]{color(0xff0f0f0e), color(0xff382a04), color(0xff141524), color(0xff170d1f), color(0xff000000)};
+    line_palette = new int[]{color(0xff382a04), color(0xff594a1f), color(0xff073610), color(0xff18361e), color(0xff243618), color(0xff313622), color(0xff473216)};
+    // render.shader(shader);
+    // render.endDraw();
+
+
+
+
 }
 
 
@@ -1000,36 +984,36 @@ class Particle {
 
 // }
 
-public void keyPressed() {
-  switch (key) {
-    case 's':
-      render.save(saveFilePath + "-" + "SEED-" + str(seed) + ".png");
-      break;
+// void keyPressed() {
+//   switch (key) {
+//     case 's':
+//       render.save(saveFilePath + "-" + "SEED-" + str(seed) + ".png");
+//       break;
       
-    case 'r':
-      seed = (int)System.currentTimeMillis();
-      renderHighRes = false;
-      doReset();
-      break;
+//     case 'r':
+//       seed = (int)System.currentTimeMillis();
+//       renderHighRes = false;
+//       doReset();
+//       break;
 
-    case 'R':
-      seed = (int)System.currentTimeMillis();
-      renderHighRes = true;
-      doReset();
-      break;
+//     case 'R':
+//       seed = (int)System.currentTimeMillis();
+//       renderHighRes = true;
+//       doReset();
+//       break;
       
-    case 'h':
-      renderHighRes = true;
-      doReset();
-      break;
+//     case 'h':
+//       renderHighRes = true;
+//       doReset();
+//       break;
 
-    case 'H':
-      renderHighRes = true;
-      doReset();
-      break;
+//     case 'H':
+//       renderHighRes = true;
+//       doReset();
+//       break;
       
-  }
-}
+//   }
+// }
 
 /* ********************** CHAIKIN CURVE FUNCTIONS **************************** */
 
@@ -2167,7 +2151,7 @@ float[][] p = new float[][]{
 {2215.2572999999993f, 3544.038399999999f},
 {2215.2573f, 3544.0385f}
 };
-  public void settings() {  size(750, 750); }
+  public void settings() {  size(1000, 1000, P3D); }
   static public void main(String[] passedArgs) {
     String[] appletArgs = new String[] { "watershed" };
     if (passedArgs != null) {

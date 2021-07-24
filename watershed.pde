@@ -3,6 +3,7 @@ import java.util.Collections;
 import java.util.Arrays;
 import java.util.Comparator;
 import megamu.mesh.*;
+import processing.pdf.*;
 
 /* *********************** HIGH RES EXPORT FUNCTIONALITY **************************/
 
@@ -44,13 +45,45 @@ PVector[][] noiseGrid; //set up a noise based flow field for changing tile attri
 Gradient colorGrad;
 Polygon poly;
 
+PShader shader;
 
 void setup(){
-    size(750, 750);
+    // size(750, 750, P3D);
     background(255);
     colorMode(HSB, 360, 100, 100, 100);
-    doReset();
+    size(1000, 1000, P3D);
+    noStroke();
+
+    shader = loadShader("distance_field.frag");
+    // doReset();
+    saveHighRes();
 }
+void savePDF() {
+  println("Saving PDF image...");
+  beginRecord(PDF,  "-vector.pdf");
+  seededRender();
+  endRecord();
+  println("Finished");
+}
+
+void seededRender() {
+  randomSeed(seed);
+  noiseSeed(seed);
+  render();
+}
+
+void render() {
+  /* Do your drawing in here */
+    shader.set("u_resolution", float(width), float(height));
+    shader.set("u_mouse", float(mouseX), float(mouseY));
+    shader.set("u_time", millis() / 1000.0);
+    // shader(shader);
+    rect(0,0,width,height);
+    //   if(frameCount==1) 
+    save(saveFilePath + "-1.png");
+//   if(int(millis()/1000.0) ==15) save(saveFilePath + "-15.png");
+}
+
 
 ArrayList<PVector> inkscapePathImport(float[][] p, float inputWidth, float inputHeight){
     ArrayList<PVector> out = new ArrayList();
@@ -64,78 +97,15 @@ ArrayList<PVector> inkscapePathImport(float[][] p, float inputWidth, float input
 }
 
 
-void doReset() { //initial setup and used in resetting for high-def export
-
-    int dpi = renderHighRes ? printDpi : previewDpi;
-    scaleFactor = dpi / (float)previewDpi;
-    renderWidth = printWidth * dpi;
-    renderHeight = printHeight * dpi;
-    render = createGraphics(renderWidth, renderHeight);
-    firstFrame = true;
-    noiseSeed(seed);
-    randomSeed(seed);
-    background_palette = new int[]{color(#0f0f0e), color(#382a04), color(#141524), color(#170d1f), color(#000000)};
-    line_palette = new int[]{color(#382a04), color(#594a1f), color(#073610), color(#18361e), color(#243618), color(#313622), color(#473216)};
-
-    ArrayList<PVector> path = inkscapePathImport(p, 3564.00000, 5014.66650);
-    // printArray(path);
-    line = new ArrayList(); //generate a random line 
-    int n = 50;
-    for(int i=0; i<50; i++){
-        line.add(new PVector(map(i, 0, n-1, 0, renderWidth), renderHeight/2 + map(compoundTrigFunction(map(i, 0, n-1, 0, 2*TWO_PI), 0), -3, 4, -50, 50)));
-    }
-
-    Ribbon r = new Ribbon(path, renderHighRes ? printDpi/previewDpi * 50 : 50, true);
-    render.beginDraw();
-    r.vadenWeb(200, 10, new Gradient(line_palette));
-
-
-    float[] t = new float[400];
-    float scale = 2;
-    for(int i=0; i<t.length; i++){
-        t[i] = map(i, 0, t.length, -scale*TWO_PI, scale*TWO_PI);
-    }
-    int sample_size = int(t.length*0.5);
-    float rectSize = renderWidth/sample_size; 
-    int numRows=20;
-
-
-    render.stroke(0,0,100, 5);
-    canvas_overlay_example1();
-
-    
-    render.endDraw();
-
-
-
-
-}
-
 
 void draw(){
-    render.beginDraw();
-    if(firstFrame){
-        firstFrame = false;
-        render.colorMode(HSB, 360,100,100,100);
-        render.fill(0);
-    }
+}
 
-    //ANY LOGIC USED TO DRAW GOES HERE
-    render.endDraw(); //some settings to display the render object on screen
-    int outWidth, outHeight;
-    
-    float ratio = renderWidth / (float)renderHeight;
-    if (ratio > 1) {
-        outWidth = width;
-        outHeight = (int)(outWidth / ratio);
-    } else {
-        outHeight = height;
-        outWidth = (int)(outHeight * ratio);
+void keyPressed(){
+    switch(key){
+        case 's': saveHighRes();
+        break;
     }
-    
-    background(192);
-    image(render, (width-outWidth)/2, (height - outHeight) / 2, outWidth, outHeight);
-
 }
 
 
@@ -149,4 +119,49 @@ color lerpColor(color[] arr, float step, int colorMode) {
   float scl = step * (sz - 1);
   int i = int(scl);
   return lerpColor(arr[i], arr[i + 1], scl - i, colorMode);
+}
+
+void saveHighRes() {
+int dpi = printDpi;
+scaleFactor = dpi / (float)previewDpi;
+  PGraphics hires = createGraphics(
+                        int(width * scaleFactor),
+                        int(height * scaleFactor),
+                        P3D);
+  println("Generating high-resolution image...");
+  shader.set("u_resolution", float(hires.width), float(hires.height));
+    // shader.set("u_mouse", float(mouseX), float(mouseY));
+  shader.set("u_time", millis() / 1000.0);
+  hires.beginDraw();
+  hires.background(255);
+  hires.stroke(0);
+  hires.line(0,0,588,588);
+  hires.noStroke();
+//   hires.scale(scaleFactor);
+  hires.filter(shader);
+  hires.endDraw();
+
+  hires.save(seed + "-highres.png");
+  println("Finished");
+}
+
+void doReset() { //initial setup and used in resetting for high-def export
+    int dpi = renderHighRes ? printDpi : previewDpi;
+    scaleFactor = dpi / (float)previewDpi;
+    renderWidth = printWidth * dpi;
+    renderHeight = printHeight * dpi;
+    render = createGraphics(renderWidth, renderHeight);
+    shader=loadShader("distance_field.glsl");
+    // shader.set("fraction", 1.0);
+    firstFrame = true;
+    noiseSeed(seed);
+    randomSeed(seed);
+    background_palette = new int[]{color(#0f0f0e), color(#382a04), color(#141524), color(#170d1f), color(#000000)};
+    line_palette = new int[]{color(#382a04), color(#594a1f), color(#073610), color(#18361e), color(#243618), color(#313622), color(#473216)};
+    // render.shader(shader);
+    // render.endDraw();
+
+
+
+
 }

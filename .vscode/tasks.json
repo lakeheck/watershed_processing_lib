@@ -9,7 +9,7 @@
           "kind": "build",
           "isDefault": true
         },
-        "command": "${config:processing.path}",
+        "command": "C:\\Program Files\\processing-3.5.4\\processing-java.exe",
         "presentation": {
           "echo": true,
           "reveal": "always",

@@ -1,0 +1,20 @@
+strange attractor 
+
+swampy
+tattoo + album art + print 
+bonus: something that would work for concert visuals as well
+
+i think i want to do a heirarchal approach, with various parts of the work performing
+the attendant functions below: 
+- texture or fill algorithm will be the detail
+- large structure will make up composition 
+
+want to start with some general attractor based flow field 
+- the lines of the field will be composed of polygons following the field 
+- the interior of the polygons will be GeoMetricSubdivisions 
+- ideally we will only fill selection of the polygons to give the sense of depth 
+- i think selectively showing them (or perhaps by altering scale or distortion) we 
+could effectively evoke the feeling of growth or decay (e.g. use noise based flow field to adjust the relative transparency, brightness, thickness, or area of shapes)
+
+NOTES 
+- thomas or sprott attractors have the best patterns for a single attractor in 2nd

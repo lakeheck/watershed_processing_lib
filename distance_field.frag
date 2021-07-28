@@ -217,7 +217,7 @@ void main(){
     col = mix( col, vec3(0.3,0.05,0.05), pct );
     col = mix( col, vec3(1.0, 1.0, 1.0), dot(r,r) );
     col = mix( col, vec3(0.3922, 0.1608, 0.1608), 0.5*q.y*q.y - u_time*0.1);
-    col = mix( col, vec3(0.0,0.2,0.4), 0.5*smoothstep(1.2,1.3,abs(r.y)+abs(r.x)+ u_time*0.1) );
+    col = mix( col, vec3(0.0,0.2,0.4), 0.5*smoothstep(1.2,1.3,abs(r.y)+abs(r.x)+ min(u_time*0.1, 1.5)));
     col *= pct*2.0;
     col += field;
     // color2 += mix(color3, mix(color1, color2, vec3(pct)), pct);
